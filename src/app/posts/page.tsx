@@ -103,6 +103,10 @@ export default function PostsPage() {
     router.push(`/preview?postId=${postId}`);
   };
 
+  const handleOpenAuthor = (userId: string) => {
+    router.push(`/profile/${userId}`);
+  };
+
   return (
     <Page>
       <div
@@ -111,7 +115,7 @@ export default function PostsPage() {
           display: 'flex',
           flexDirection: 'column',
           gap: '12px',
-          paddingBottom: '80px',
+          paddingBottom: 'calc(96px + env(safe-area-inset-bottom, 0px))',
         }}
       >
         <Section header="Project feed">
@@ -169,6 +173,7 @@ export default function PostsPage() {
               onLike={handleLike}
               likingId={likingId}
               onOpen={handleOpen}
+              onOpenAuthor={handleOpenAuthor}
             />
           ))
         )}

@@ -16,21 +16,30 @@ export function TabNavigation() {
   return (
     <Tabbar
       style={{
-        position: 'sticky',
+        position: 'fixed',
         bottom: 0,
+        left: 0,
+        right: 0,
         background: 'var(--tg-theme-bg-color, #fff)',
+        boxShadow: '0 -6px 20px rgba(0, 0, 0, 0.04)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        zIndex: 100,
       }}
     >
-      {tabs.map((tab) => (
-        <Tabbar.Item
-          key={tab.href}
-          selected={pathname === tab.href}
-          text={tab.label}
-          onClick={() => router.push(tab.href)}
-        >
-          <span aria-hidden>{tab.icon}</span>
-        </Tabbar.Item>
-      ))}
+      {tabs.map((tab) => {
+        const isSelected = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+
+        return (
+          <Tabbar.Item
+            key={tab.href}
+            selected={isSelected}
+            text={tab.label}
+            onClick={() => router.push(tab.href)}
+          >
+            <span aria-hidden>{tab.icon}</span>
+          </Tabbar.Item>
+        );
+      })}
     </Tabbar>
   );
 }

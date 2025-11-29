@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { initData, useSignal } from '@telegram-apps/sdk-react';
 import { Avatar, Section, Spinner, Text } from '@telegram-apps/telegram-ui';
 
@@ -14,8 +14,11 @@ type ProfileStats = {
   joinedAt?: string;
 };
 
-export default function ProfilePage() {
+export default function UserProfilePage() {
   const router = useRouter();
+  const params = useParams<{ id: string }>();
+  const profileId = Array.isArray(params?.id) ? params.id[0] : params?.id;
+
   const tgUser = useSignal(initData.user);
   const viewer = useMemo<UserSummary | null>(
     () =>
@@ -38,48 +41,55 @@ export default function ProfilePage() {
   const [likingId, setLikingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const loadProfile = async () => {
-    if (!viewer?.id) {
-      setIsLoading(false);
-      setError('Open inside Telegram to see your profile and posts.');
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    try {
-      const [userRes, postsRes] = await Promise.all([
-        fetch(`/api/users/${viewer.id}`),
-        fetch(`/api/posts?userId=${encodeURIComponent(viewer.id)}&authorId=${encodeURIComponent(viewer.id)}`),
-      ]);
-
-      const userData = await userRes.json();
-      const postsData = await postsRes.json();
-
-      if (!userRes.ok) {
-        throw new Error(userData.error || 'Failed to load user profile');
-      }
-      if (!postsRes.ok) {
-        throw new Error(postsData.error || 'Failed to load user posts');
-      }
-
-      setProfile(userData.user as UserSummary);
-      setPosts(postsData.posts as PostCardData[]);
-      setStats({
-        totalPosts: (postsData.posts as PostCardData[]).length,
-        joinedAt: (userData.user as UserSummary)?.created_at,
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load profile');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const loadProfile = async () => {
+      if (!profileId) {
+        setError('User not found');
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const query = new URLSearchParams();
+        if (viewer?.id) {
+          query.set('userId', viewer.id);
+        }
+        query.set('authorId', profileId);
+
+        const [userRes, postsRes] = await Promise.all([
+          fetch(`/api/users/${encodeURIComponent(profileId)}`),
+          fetch(`/api/posts?${query.toString()}`),
+        ]);
+
+        const userData = await userRes.json();
+        const postsData = await postsRes.json();
+
+        if (!userRes.ok) {
+          throw new Error(userData.error || 'Failed to load user profile');
+        }
+
+        if (!postsRes.ok) {
+          throw new Error(postsData.error || 'Failed to load user posts');
+        }
+
+        setProfile(userData.user as UserSummary);
+        setPosts(postsData.posts as PostCardData[]);
+        setStats({
+          totalPosts: (postsData.posts as PostCardData[]).length,
+          joinedAt: (userData.user as UserSummary)?.created_at,
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load profile');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     void loadProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewer?.id]);
+  }, [profileId, viewer?.id]);
 
   const handleLike = async (postId: string) => {
     if (!viewer) {
@@ -117,10 +127,16 @@ export default function ProfilePage() {
     router.push(`/preview?postId=${postId}`);
   };
 
+  const handleOpenAuthor = (userId: string) => {
+    if (userId !== profileId) {
+      router.push(`/profile/${userId}`);
+    }
+  };
+
   const name = profile
     ? [profile.first_name, profile.last_name].filter(Boolean).join(' ') ||
       (profile.username ? `@${profile.username}` : 'Telegram user')
-    : 'Your profile';
+    : 'Profile';
 
   return (
     <Page>
@@ -183,7 +199,7 @@ export default function ProfilePage() {
           <Section header="No posts yet">
             <div style={{ padding: '12px' }}>
               <Text style={{ color: 'var(--tg-theme-hint-color)' }}>
-                Your generated projects will appear here.
+                This user has not published posts yet.
               </Text>
             </div>
           </Section>
@@ -196,6 +212,7 @@ export default function ProfilePage() {
               onLike={handleLike}
               likingId={likingId}
               onOpen={handleOpen}
+              onOpenAuthor={handleOpenAuthor}
             />
           ))
         )}

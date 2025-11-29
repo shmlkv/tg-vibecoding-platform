@@ -29,6 +29,7 @@ export type PostCardProps = {
   onLike: (postId: string) => Promise<void>;
   likingId: string | null;
   onOpen: (postId: string) => void;
+  onOpenAuthor?: (userId: string) => void;
 };
 
 function formatName(user?: UserSummary | null) {
@@ -47,13 +48,38 @@ function makeAcronym(user?: UserSummary | null) {
   return (first + last || username || 'TG').slice(0, 2).toUpperCase();
 }
 
-export function PostCard({ post, viewerCanLike, onLike, likingId, onOpen }: PostCardProps) {
+export function PostCard({ post, viewerCanLike, onLike, likingId, onOpen, onOpenAuthor }: PostCardProps) {
   const [isFrameLoading, setIsFrameLoading] = useState(true);
+
+  const canOpenAuthor = Boolean(onOpenAuthor && post.user?.id);
 
   return (
     <Section key={post.id} header={post.title}>
       <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            cursor: canOpenAuthor ? 'pointer' : 'default',
+          }}
+          onClick={() => {
+            if (canOpenAuthor && post.user?.id) {
+              onOpenAuthor?.(post.user.id);
+            }
+          }}
+          role={canOpenAuthor ? 'button' : undefined}
+          tabIndex={canOpenAuthor ? 0 : -1}
+          onKeyDown={(event) => {
+            if (canOpenAuthor && (event.key === 'Enter' || event.key === ' ')) {
+              event.preventDefault();
+              const authorId = post.user?.id;
+              if (authorId) {
+                onOpenAuthor?.(authorId);
+              }
+            }
+          }}
+        >
           <Avatar
             size={40}
             src={post.user?.photo_url || undefined}

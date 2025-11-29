@@ -8,3 +8,10 @@
   align-items: center;
   justify-content: center;
 }
+
+.app-root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--tg-theme-secondary-bg-color, white);
+}

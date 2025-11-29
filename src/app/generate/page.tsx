@@ -79,7 +79,7 @@ export default function GeneratePage() {
           display: 'flex',
           flexDirection: 'column',
           gap: '16px',
-          paddingBottom: '80px',
+          paddingBottom: 'calc(96px + env(safe-area-inset-bottom, 0px))',
         }}
       >
         <Section header="Create new post">

@@ -31,6 +31,7 @@ function RootInner({ children }: PropsWithChildren) {
   return (
     <TonConnectUIProvider manifestUrl="/tonconnect-manifest.json">
       <AppRoot
+        className="app-root"
         appearance={isDark ? 'dark' : 'light'}
         platform={
           ['macos', 'ios'].includes(lp.tgWebAppPlatform) ? 'ios' : 'base'
