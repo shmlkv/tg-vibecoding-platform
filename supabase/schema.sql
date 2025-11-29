@@ -26,6 +26,8 @@ create table if not exists public.posts (
   v0_project_web_url text,
   v0_chat_id text not null,
   v0_demo_url text not null,
+  status text not null default 'ready' check (status in ('pending', 'ready', 'failed')),
+  generation_error text,
   likes_count integer not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

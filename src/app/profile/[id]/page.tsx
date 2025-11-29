@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
 import { initData, useSignal } from '@telegram-apps/sdk-react';
 import { Avatar, Section, Spinner, Text } from '@telegram-apps/telegram-ui';
+import { useParams, useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Page } from '@/components/Page';
 import { PostCard, type PostCardData, type UserSummary } from '@/components/PostCard';
@@ -24,12 +24,12 @@ export default function UserProfilePage() {
     () =>
       tgUser
         ? {
-            id: String(tgUser.id),
-            username: tgUser.username ?? undefined,
-            first_name: tgUser.first_name ?? undefined,
-            last_name: tgUser.last_name ?? undefined,
-            photo_url: tgUser.photo_url ?? undefined,
-          }
+          id: String(tgUser.id),
+          username: tgUser.username ?? undefined,
+          first_name: tgUser.first_name ?? undefined,
+          last_name: tgUser.last_name ?? undefined,
+          photo_url: tgUser.photo_url ?? undefined,
+        }
         : null,
     [tgUser]
   );
@@ -41,55 +41,67 @@ export default function UserProfilePage() {
   const [likingId, setLikingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const loadProfile = async () => {
-      if (!profileId) {
-        setError('User not found');
-        setIsLoading(false);
-        return;
+  const loadProfile = useCallback(async () => {
+    if (!profileId) {
+      setError('User not found');
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const query = new URLSearchParams();
+      if (viewer?.id) {
+        query.set('userId', viewer.id);
+      }
+      query.set('authorId', profileId);
+
+      const [userRes, postsRes] = await Promise.all([
+        fetch(`/api/users/${encodeURIComponent(profileId)}`),
+        fetch(`/api/posts?${query.toString()}`),
+      ]);
+
+      const userData = await userRes.json();
+      const postsData = await postsRes.json();
+
+      if (!userRes.ok) {
+        throw new Error(userData.error || 'Failed to load user profile');
       }
 
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const query = new URLSearchParams();
-        if (viewer?.id) {
-          query.set('userId', viewer.id);
-        }
-        query.set('authorId', profileId);
-
-        const [userRes, postsRes] = await Promise.all([
-          fetch(`/api/users/${encodeURIComponent(profileId)}`),
-          fetch(`/api/posts?${query.toString()}`),
-        ]);
-
-        const userData = await userRes.json();
-        const postsData = await postsRes.json();
-
-        if (!userRes.ok) {
-          throw new Error(userData.error || 'Failed to load user profile');
-        }
-
-        if (!postsRes.ok) {
-          throw new Error(postsData.error || 'Failed to load user posts');
-        }
-
-        setProfile(userData.user as UserSummary);
-        setPosts(postsData.posts as PostCardData[]);
-        setStats({
-          totalPosts: (postsData.posts as PostCardData[]).length,
-          joinedAt: (userData.user as UserSummary)?.created_at,
-        });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load profile');
-      } finally {
-        setIsLoading(false);
+      if (!postsRes.ok) {
+        throw new Error(postsData.error || 'Failed to load user posts');
       }
-    };
 
-    void loadProfile();
+      setProfile(userData.user as UserSummary);
+      setPosts(postsData.posts as PostCardData[]);
+      setStats({
+        totalPosts: (postsData.posts as PostCardData[]).length,
+        joinedAt: (userData.user as UserSummary)?.created_at,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load profile');
+    } finally {
+      setIsLoading(false);
+    }
   }, [profileId, viewer?.id]);
+
+  useEffect(() => {
+    void loadProfile();
+  }, [loadProfile]);
+
+  useEffect(() => {
+    if (!posts.some((post) => post.status === 'pending')) {
+      return undefined;
+    }
+
+    const interval = setInterval(() => {
+      void loadProfile();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [posts, loadProfile]);
 
   const handleLike = async (postId: string) => {
     if (!viewer) {
@@ -135,7 +147,7 @@ export default function UserProfilePage() {
 
   const name = profile
     ? [profile.first_name, profile.last_name].filter(Boolean).join(' ') ||
-      (profile.username ? `@${profile.username}` : 'Telegram user')
+    (profile.username ? `@${profile.username}` : 'Telegram user')
     : 'Profile';
 
   return (
@@ -146,7 +158,8 @@ export default function UserProfilePage() {
           display: 'flex',
           flexDirection: 'column',
           gap: '12px',
-          paddingBottom: 'calc(96px + env(safe-area-inset-bottom, 0px))',
+          paddingBottom: 'calc(258px + env(safe-area-inset-bottom, 0px))',
+
         }}
       >
         <Section header="Profile">
@@ -193,7 +206,6 @@ export default function UserProfilePage() {
             }}
           >
             <Spinner size="l" />
-            <Text style={{ color: 'var(--tg-theme-hint-color)' }}>Loading profile…</Text>
           </div>
         ) : posts.length === 0 ? (
           <Section header="No posts yet">

@@ -21,11 +21,13 @@ export type PostWithAuthor = Database['public']['Tables']['posts']['Row'] & {
 type PostInsertInput = {
   title: string;
   prompt: string;
+  userId?: string | null;
   v0ProjectId: string;
   v0ProjectWebUrl?: string | null;
   v0ChatId: string;
   v0DemoUrl: string;
-  userId?: string | null;
+  status?: Database['public']['Tables']['posts']['Insert']['status'];
+  generationError?: string | null;
 };
 
 export async function upsertTelegramUser(user: TelegramUserPayload) {
@@ -66,12 +68,16 @@ export async function insertPost(input: PostInsertInput): Promise<PostWithAuthor
       v0_project_web_url: input.v0ProjectWebUrl ?? null,
       v0_chat_id: input.v0ChatId,
       v0_demo_url: input.v0DemoUrl,
+      status: input.status ?? 'ready',
+      generation_error: input.generationError ?? null,
     })
     .select(
       `
       id,
       title,
       prompt,
+      status,
+      generation_error,
       likes_count,
       created_at,
       updated_at,
@@ -85,7 +91,8 @@ export async function insertPost(input: PostInsertInput): Promise<PostWithAuthor
         username,
         first_name,
         last_name,
-        photo_url
+        photo_url,
+        created_at
       )
     `
     )
@@ -116,6 +123,8 @@ export async function getPosts({
         id,
         title,
         prompt,
+        status,
+        generation_error,
         likes_count,
         created_at,
         updated_at,
@@ -180,6 +189,8 @@ export async function getPostById({
       id,
       title,
       prompt,
+      status,
+      generation_error,
       likes_count,
       created_at,
       updated_at,
@@ -193,7 +204,8 @@ export async function getPostById({
         username,
         first_name,
         last_name,
-        photo_url
+        photo_url,
+        created_at
       )
     `
     )
@@ -221,6 +233,54 @@ export async function getPostById({
   }
 
   return post;
+}
+
+export async function updatePostGenerationSuccess({
+  postId,
+  projectId,
+  projectWebUrl,
+  chatId,
+  demoUrl,
+}: {
+  postId: string;
+  projectId: string;
+  projectWebUrl?: string | null;
+  chatId: string;
+  demoUrl: string;
+}) {
+  const supabase = getSupabaseClient();
+
+  const { error } = await supabase
+    .from('posts')
+    .update({
+      v0_project_id: projectId,
+      v0_project_web_url: projectWebUrl ?? null,
+      v0_chat_id: chatId,
+      v0_demo_url: demoUrl,
+      status: 'ready',
+      generation_error: null,
+    })
+    .eq('id', postId);
+
+  if (error) {
+    throw new Error(`Failed to update post after generation: ${error.message}`);
+  }
+}
+
+export async function updatePostGenerationFailure(postId: string, errorMessage?: string) {
+  const supabase = getSupabaseClient();
+
+  const { error } = await supabase
+    .from('posts')
+    .update({
+      status: 'failed',
+      generation_error: errorMessage?.slice(0, 500) ?? null,
+    })
+    .eq('id', postId);
+
+  if (error) {
+    throw new Error(`Failed to mark post as failed: ${error.message}`);
+  }
 }
 
 export async function toggleLike({

@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { initData, useSignal } from '@telegram-apps/sdk-react';
-import { Button, Section, Spinner, Text } from '@telegram-apps/telegram-ui';
+import { Section, Spinner, Text } from '@telegram-apps/telegram-ui';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Page } from '@/components/Page';
 import { PostCard, type PostCardData } from '@/components/PostCard';
@@ -26,12 +26,12 @@ export default function PostsPage() {
     () =>
       tgUser
         ? {
-            id: String(tgUser.id),
-            username: tgUser.username ?? undefined,
-            first_name: tgUser.first_name ?? undefined,
-            last_name: tgUser.last_name ?? undefined,
-            photo_url: tgUser.photo_url ?? undefined,
-          }
+          id: String(tgUser.id),
+          username: tgUser.username ?? undefined,
+          first_name: tgUser.first_name ?? undefined,
+          last_name: tgUser.last_name ?? undefined,
+          photo_url: tgUser.photo_url ?? undefined,
+        }
         : null,
     [tgUser]
   );
@@ -41,7 +41,7 @@ export default function PostsPage() {
   const [likingId, setLikingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const loadPosts = async () => {
+  const loadPosts = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
@@ -60,12 +60,23 @@ export default function PostsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [viewer?.id]);
 
   useEffect(() => {
     void loadPosts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewer?.id]);
+  }, [loadPosts]);
+
+  useEffect(() => {
+    if (!posts.some((post) => post.status === 'pending')) {
+      return undefined;
+    }
+
+    const interval = setInterval(() => {
+      void loadPosts();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [posts, loadPosts]);
 
   const handleLike = async (postId: string) => {
     if (!viewer) {
@@ -111,23 +122,13 @@ export default function PostsPage() {
     <Page>
       <div
         style={{
-          padding: '16px',
+          // padding: '16px',
           display: 'flex',
           flexDirection: 'column',
           gap: '12px',
           paddingBottom: 'calc(96px + env(safe-area-inset-bottom, 0px))',
         }}
       >
-        <Section header="Project feed">
-          <div style={{ padding: '12px', display: 'flex', gap: '12px', flexDirection: 'column' }}>
-            <Text weight="2">
-              Generate UI with v0 and embed live previews inside posts. Fresh drops appear below.
-            </Text>
-            <Button mode="filled" stretched size="l" onClick={() => router.push('/generate')}>
-              ✨ Create a new post
-            </Button>
-          </div>
-        </Section>
 
         {error && (
           <div
@@ -150,20 +151,19 @@ export default function PostsPage() {
               justifyContent: 'center',
               alignItems: 'center',
               padding: '24px',
-            gap: '12px',
-          }}
-        >
-          <Spinner size="l" />
-          <Text style={{ color: 'var(--tg-theme-hint-color)' }}>Loading posts…</Text>
-        </div>
-      ) : posts.length === 0 ? (
-        <Section header="Nothing here yet">
-          <div style={{ padding: '12px' }}>
-            <Text style={{ color: 'var(--tg-theme-hint-color)' }}>
-              Your generated projects will appear here.
-            </Text>
+              gap: '12px',
+            }}
+          >
+            <Spinner size="l" />
           </div>
-        </Section>
+        ) : posts.length === 0 ? (
+          <Section header="Nothing here yet">
+            <div style={{ padding: '12px' }}>
+              <Text style={{ color: 'var(--tg-theme-hint-color)' }}>
+                Your generated projects will appear here.
+              </Text>
+            </div>
+          </Section>
         ) : (
           posts.map((post) => (
             <PostCard

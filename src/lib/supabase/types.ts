@@ -49,8 +49,10 @@ export interface Database {
           likes_count: number;
           prompt: string;
           title: string;
+          status: 'pending' | 'ready' | 'failed';
           updated_at: string;
           user_id: string | null;
+          generation_error: string | null;
           v0_chat_id: string;
           v0_demo_url: string;
           v0_project_id: string;
@@ -62,8 +64,10 @@ export interface Database {
           likes_count?: number;
           prompt: string;
           title: string;
+          status?: 'pending' | 'ready' | 'failed';
           updated_at?: string;
           user_id?: string | null;
+          generation_error?: string | null;
           v0_chat_id: string;
           v0_demo_url: string;
           v0_project_id: string;
@@ -75,8 +79,10 @@ export interface Database {
           likes_count?: number;
           prompt?: string;
           title?: string;
+          status?: 'pending' | 'ready' | 'failed';
           updated_at?: string;
           user_id?: string | null;
+          generation_error?: string | null;
           v0_chat_id?: string;
           v0_demo_url?: string;
           v0_project_id?: string;

@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { initData, useSignal } from '@telegram-apps/sdk-react';
 import { Avatar, Section, Spinner, Text } from '@telegram-apps/telegram-ui';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Page } from '@/components/Page';
 import { PostCard, type PostCardData, type UserSummary } from '@/components/PostCard';
@@ -21,12 +21,12 @@ export default function ProfilePage() {
     () =>
       tgUser
         ? {
-            id: String(tgUser.id),
-            username: tgUser.username ?? undefined,
-            first_name: tgUser.first_name ?? undefined,
-            last_name: tgUser.last_name ?? undefined,
-            photo_url: tgUser.photo_url ?? undefined,
-          }
+          id: String(tgUser.id),
+          username: tgUser.username ?? undefined,
+          first_name: tgUser.first_name ?? undefined,
+          last_name: tgUser.last_name ?? undefined,
+          photo_url: tgUser.photo_url ?? undefined,
+        }
         : null,
     [tgUser]
   );
@@ -38,7 +38,7 @@ export default function ProfilePage() {
   const [likingId, setLikingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     if (!viewer?.id) {
       setIsLoading(false);
       setError('Open inside Telegram to see your profile and posts.');
@@ -74,12 +74,23 @@ export default function ProfilePage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [viewer?.id]);
 
   useEffect(() => {
     void loadProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewer?.id]);
+  }, [loadProfile]);
+
+  useEffect(() => {
+    if (!posts.some((post) => post.status === 'pending')) {
+      return undefined;
+    }
+
+    const interval = setInterval(() => {
+      void loadProfile();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [posts, loadProfile]);
 
   const handleLike = async (postId: string) => {
     if (!viewer) {
@@ -122,11 +133,32 @@ export default function ProfilePage() {
       (profile.username ? `@${profile.username}` : 'Telegram user')
     : 'Your profile';
 
+  if (isLoading) {
+    return (
+      <Page>
+        <div
+          style={{
+            minHeight: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '12px',
+            padding: '16px',
+            paddingBottom: 'calc(96px + env(safe-area-inset-bottom, 0px))',
+          }}
+        >
+          <Spinner size="l" />
+        </div>
+        <TabNavigation />
+      </Page>
+    );
+  }
+
   return (
     <Page>
       <div
         style={{
-          padding: '16px',
           display: 'flex',
           flexDirection: 'column',
           gap: '12px',
@@ -166,20 +198,7 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {isLoading ? (
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              padding: '24px',
-              gap: '12px',
-            }}
-          >
-            <Spinner size="l" />
-            <Text style={{ color: 'var(--tg-theme-hint-color)' }}>Loading profile…</Text>
-          </div>
-        ) : posts.length === 0 ? (
+        {posts.length === 0 ? (
           <Section header="No posts yet">
             <div style={{ padding: '12px' }}>
               <Text style={{ color: 'var(--tg-theme-hint-color)' }}>

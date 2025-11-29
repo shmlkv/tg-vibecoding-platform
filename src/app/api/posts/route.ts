@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { insertPost, upsertTelegramUser, getPosts } from '@/lib/posts';
+import {
+  getPosts,
+  insertPost,
+  upsertTelegramUser,
+  updatePostGenerationFailure,
+  updatePostGenerationSuccess,
+} from '@/lib/posts';
 import { createV0Chat, createV0Project } from '@/lib/v0';
 
 function buildTitle(prompt: string, customTitle?: string) {
@@ -46,31 +52,54 @@ export async function POST(request: NextRequest) {
     }
 
     const computedTitle = buildTitle(prompt, title);
-    const project = await createV0Project({
-      name: computedTitle,
-      description: prompt.slice(0, 280),
-    });
-
-    const { chat, demoUrl } = await createV0Chat({
-      prompt,
-      projectId: project.id,
-    });
-
-    const post = await insertPost({
+    const pendingPost = await insertPost({
       title: computedTitle,
       prompt,
       userId,
-      v0ProjectId: project.id,
-      v0ProjectWebUrl: project.webUrl ?? null,
-      v0ChatId: chat.id,
-      v0DemoUrl: demoUrl,
+      v0ProjectId: 'pending',
+      v0ProjectWebUrl: null,
+      v0ChatId: 'pending',
+      v0DemoUrl: 'pending',
+      status: 'pending',
     });
 
-    return NextResponse.json({
-      post,
-      demoUrl,
-      projectUrl: project.webUrl ?? project.apiUrl ?? null,
-    });
+    void (async () => {
+      try {
+        const project = await createV0Project({
+          name: computedTitle,
+          description: prompt.slice(0, 280),
+        });
+
+        const { chat, demoUrl } = await createV0Chat({
+          prompt,
+          projectId: project.id,
+        });
+
+        await updatePostGenerationSuccess({
+          postId: pendingPost.id,
+          projectId: project.id,
+          projectWebUrl: project.webUrl ?? project.apiUrl ?? null,
+          chatId: chat.id,
+          demoUrl,
+        });
+      } catch (err) {
+        console.error('[posts][POST] async generation failed', err);
+        const message = err instanceof Error ? err.message : 'Generation failed';
+        try {
+          await updatePostGenerationFailure(pendingPost.id, message);
+        } catch (markErr) {
+          console.error('[posts][POST] failed to mark post as failed', markErr);
+        }
+      }
+    })();
+
+    return NextResponse.json(
+      {
+        post: pendingPost,
+        status: 'pending',
+      },
+      { status: 202 }
+    );
   } catch (error) {
     console.error('[posts][POST] error', error);
     return NextResponse.json(
