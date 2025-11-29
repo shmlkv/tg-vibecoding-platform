@@ -20,6 +20,7 @@ Telegram Mini App built with Next.js that uses AI to generate user interfaces fr
 - [Telegram UI](https://github.com/Telegram-Mini-Apps/TelegramUI) - UI components
 - [Tailwind CSS](https://tailwindcss.com/) - Styling
 - [next-intl](https://next-intl-docs.vercel.app/) - Internationalization
+- [Supabase](https://supabase.com/) - Storage for Telegram users, posts and v0 project links
 
 > **Important**: This project uses [pnpm](https://pnpm.io/) exclusively. Do not use npm or yarn.
 
@@ -51,6 +52,19 @@ Then submit `https://127.0.0.1:3000` to @BotFather (not localhost).
 pnpm run build
 pnpm start
 ```
+
+### Database (Supabase)
+
+- Credentials come from `.env` (`DB_PROJECT_URL` and `DB_API_KEY`).
+- Run `supabase/schema.sql` in the Supabase SQL editor to create tables:
+  - `users` for Telegram profile fields
+  - `posts` for generated v0 projects (stores project/chat IDs, demo URL, author, timestamps)
+  - `post_likes` with triggers to keep `likes_count` in sync
+- API routes:
+  - `POST /api/posts` — create v0 project via Platform API, generate chat preview, persist post.
+  - `GET /api/posts` — feed with author data, likes.
+  - `GET /api/posts/:id` — single post (used by preview).
+  - `POST /api/posts/:id/like` — toggle like for current Telegram user.
 
 ### Code Quality
 
