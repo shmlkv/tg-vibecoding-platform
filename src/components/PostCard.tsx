@@ -1,8 +1,8 @@
 'use client';
 
-import { Avatar, Button, Spinner, Text } from '@telegram-apps/telegram-ui';
-import { useEffect, useState, useMemo } from 'react';
 import { wrapHtmlWithMute } from '@/lib/iframe-mute';
+import { Avatar, Button, Spinner, Text } from '@telegram-apps/telegram-ui';
+import { useEffect, useMemo, useState } from 'react';
 
 // Telegram WebApp types
 declare global {
@@ -362,7 +362,7 @@ export function PostCard({
             <Spinner size="l" />
             <Text weight="2">Generating UI…</Text>
             <Text style={{ color: 'var(--tg-theme-hint-color)', textAlign: 'center' }}>
-              This usually takes under a minute. The card will refresh once ready.
+              This usually takes around 3-5 minutes.<br />The card will refresh once ready.
             </Text>
           </div>
         ) : isFailed ? (
