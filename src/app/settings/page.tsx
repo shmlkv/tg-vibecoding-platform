@@ -31,6 +31,7 @@ export default function SettingsPage() {
 
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [apiKey, setApiKey] = useState('');
+  const [customModel, setCustomModel] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +53,7 @@ export default function SettingsPage() {
 
       setSettings(data.settings);
       setApiKey(data.settings.openrouter_api_key || '');
+      setCustomModel(data.settings.custom_model || '');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load settings');
     } finally {
@@ -77,6 +79,7 @@ export default function SettingsPage() {
         body: JSON.stringify({
           userId: viewer.id,
           openrouterApiKey: apiKey.trim() || null,
+          customModel: customModel.trim() || null,
         }),
       });
 
@@ -214,6 +217,54 @@ export default function SettingsPage() {
               </Text>
             </div>
 
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontWeight: '600',
+                  color: 'var(--tg-theme-text-color)',
+                }}
+              >
+                Custom Model (optional)
+              </label>
+              <Input
+                type="text"
+                value={customModel}
+                onChange={(e) => setCustomModel(e.target.value)}
+                placeholder="e.g. anthropic/claude-3.5-sonnet"
+                disabled={isSaving}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--tg-theme-hint-color)',
+                  backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+                  color: 'var(--tg-theme-text-color)',
+                  fontFamily: 'monospace',
+                  fontSize: '14px',
+                }}
+              />
+              <Text
+                style={{
+                  display: 'block',
+                  marginTop: '6px',
+                  fontSize: '12px',
+                  color: 'var(--tg-theme-hint-color)',
+                }}
+              >
+                Enter any OpenRouter model ID. This will appear as &quot;Custom&quot; in the model selector.{' '}
+                <a
+                  href="https://openrouter.ai/models"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--tg-theme-link-color)', textDecoration: 'underline' }}
+                >
+                  Browse models
+                </a>
+              </Text>
+            </div>
+
             <div
               style={{
                 padding: '12px',
@@ -223,7 +274,7 @@ export default function SettingsPage() {
               }}
             >
               <Text style={{ fontSize: '14px', color: '#065f46' }}>
-                Without an API key you can use the free xAI Grok model. Add a key to unlock Claude, GPT, Gemini and other models.
+                Without an API key you can use free models (Grok, Gemini, Llama, Qwen). Add a key to unlock all models.
               </Text>
             </div>
 

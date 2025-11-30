@@ -227,6 +227,7 @@ export interface Database {
           user_id: number;
           openrouter_api_key: string | null;
           selected_model: string;
+          custom_model: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -234,6 +235,7 @@ export interface Database {
           user_id: number;
           openrouter_api_key?: string | null;
           selected_model?: string;
+          custom_model?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -241,6 +243,7 @@ export interface Database {
           user_id?: number;
           openrouter_api_key?: string | null;
           selected_model?: string;
+          custom_model?: string | null;
           created_at?: string;
           updated_at?: string;
         };

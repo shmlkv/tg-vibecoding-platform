@@ -39,6 +39,7 @@ export default function GeneratePage() {
   const [prompt, setPrompt] = useState('');
   const [title, setTitle] = useState('');
   const [selectedModel, setSelectedModel] = useState('x-ai/grok-4.1-fast:free');
+  const [customModel, setCustomModel] = useState<string | null>(null);
   const [hasApiKey, setHasApiKey] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
@@ -57,6 +58,7 @@ export default function GeneratePage() {
 
       if (response.ok && data.settings) {
         setHasApiKey(Boolean(data.settings.openrouter_api_key));
+        setCustomModel(data.settings.custom_model || null);
       }
     } catch {
       // Ignore errors, use default
@@ -69,7 +71,8 @@ export default function GeneratePage() {
     void loadSettings();
   }, [loadSettings]);
 
-  const isFreeModel = selectedModel === 'x-ai/grok-4.1-fast:free';
+  const actualModel = selectedModel === 'custom' && customModel ? customModel : selectedModel;
+  const isFreeModel = actualModel.includes(':free');
   const needsApiKey = !isFreeModel && !hasApiKey;
 
   const handleGenerate = async () => {
@@ -79,6 +82,7 @@ export default function GeneratePage() {
     setError(null);
 
     try {
+      const modelToUse = selectedModel === 'custom' && customModel ? customModel : selectedModel;
       const response = await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -86,7 +90,7 @@ export default function GeneratePage() {
           prompt,
           title: title.trim() || undefined,
           user: viewer,
-          model: selectedModel,
+          model: modelToUse,
         }),
       });
 
@@ -105,7 +109,9 @@ export default function GeneratePage() {
     }
   };
 
-  const currentModelConfig = AVAILABLE_MODELS.find((m) => m.id === selectedModel);
+  const currentModelConfig = selectedModel === 'custom' && customModel
+    ? { id: customModel, name: `Custom: ${customModel}`, description: 'Your custom model from settings', supportsReasoning: false }
+    : AVAILABLE_MODELS.find((m) => m.id === selectedModel);
 
   return (
     <Page>
@@ -169,6 +175,11 @@ export default function GeneratePage() {
                   {model.supportsReasoning ? '🧠 ' : ''}{model.name}
                 </option>
               ))}
+              {customModel && (
+                <option value="custom">
+                  ⚙️ Custom: {customModel}
+                </option>
+              )}
             </select>
             {currentModelConfig && (
               <Text

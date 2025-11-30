@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
           user_id: userId,
           openrouter_api_key: null,
           selected_model: 'x-ai/grok-4.1-fast:free',
+          custom_model: null,
         },
       });
     }
@@ -54,7 +55,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, openrouterApiKey, selectedModel } = body;
+    const { userId, openrouterApiKey, selectedModel, customModel } = body;
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
@@ -70,6 +71,7 @@ export async function POST(request: NextRequest) {
           user_id: userId,
           openrouter_api_key: openrouterApiKey || null,
           selected_model: selectedModel || 'x-ai/grok-4.1-fast:free',
+          custom_model: customModel?.trim() || null,
         },
         {
           onConflict: 'user_id',

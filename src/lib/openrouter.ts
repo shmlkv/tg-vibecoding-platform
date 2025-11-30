@@ -82,11 +82,29 @@ Return executable HTML code. Do not include markdown explanations outside the co
 
 // Available models for OpenRouter (sorted by capability/price)
 export const AVAILABLE_MODELS = [
-  // Free
+  // Free models
   {
     id: 'x-ai/grok-4.1-fast:free',
     name: 'xAI: Grok 4.1 Fast (free)',
     description: 'Free, 2M context, great for testing',
+    supportsReasoning: true,
+  },
+  {
+    id: 'google/gemini-2.0-flash-exp:free',
+    name: 'Google: Gemini 2.0 Flash (free)',
+    description: 'Free, fast, 1M context',
+    supportsReasoning: true,
+  },
+  {
+    id: 'meta-llama/llama-3.3-70b-instruct:free',
+    name: 'Meta: Llama 3.3 70B (free)',
+    description: 'Free, powerful open model',
+    supportsReasoning: false,
+  },
+  {
+    id: 'qwen/qwen3-235b-a22b:free',
+    name: 'Qwen: Qwen3 235B (free)',
+    description: 'Free, massive 235B model',
     supportsReasoning: true,
   },
   // Cheap & fast

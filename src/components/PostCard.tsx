@@ -173,7 +173,7 @@ export function PostCard({
   }, [post.project?.html_content]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 0, borderBottom: '1px solid var(--tg-theme-hint-color, #dbdbdb)', paddingBottom: '0', marginBottom: '16px', backgroundColor: 'var(--tg-theme-bg-color, #ffffff)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0, paddingBottom: '0', marginBottom: '16px', backgroundColor: 'var(--tg-theme-bg-color, #ffffff)' }}>
       <div
         style={{
           display: 'flex',
@@ -215,7 +215,7 @@ export function PostCard({
           />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <Text weight="2">{formatName(post.user)}</Text>
-            {post.model ? (
+            {post.model && (
               <div
                 onClick={(e) => {
                   e.stopPropagation();
@@ -237,19 +237,10 @@ export function PostCard({
                   {post.model.name}
                 </Text>
               </div>
-            ) : (
-              <Text style={{ color: 'var(--tg-theme-hint-color)', fontSize: '13px' }}>
-                {formatShortDate(post.created_at)}
-              </Text>
             )}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {post.model && (
-            <Text style={{ color: 'var(--tg-theme-hint-color)', fontSize: '12px' }}>
-              {formatShortDate(post.created_at)}
-            </Text>
-          )}
           {isAuthor && onDelete && (
             <button
               onClick={(e) => {
@@ -788,6 +779,11 @@ export function PostCard({
         {/* Post caption */}
         <Text style={{ color: 'var(--tg-theme-text-color)', fontSize: '14px' }}>
           {post.prompt}
+        </Text>
+
+        {/* Timestamp */}
+        <Text style={{ color: 'var(--tg-theme-hint-color)', fontSize: '12px', marginTop: '8px', display: 'block' }}>
+          {formatShortDate(post.created_at)}
         </Text>
       </div>
     </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { initData, useSignal } from '@telegram-apps/sdk-react';
+import { initData, shareURL, useSignal } from '@telegram-apps/sdk-react';
 import { Avatar, Section, Spinner, Text } from '@telegram-apps/telegram-ui';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -9,16 +9,6 @@ import { Page } from '@/components/Page';
 import { PostCard, type PostCardData, type UserSummary } from '@/components/PostCard';
 import { TabNavigation } from '@/components/TabNavigation';
 
-// Telegram WebApp types
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp?: {
-        openTelegramLink?: (url: string) => void;
-      };
-    };
-  }
-}
 
 type ProfileStats = {
   totalPosts: number;
@@ -295,22 +285,21 @@ export default function UserProfilePage() {
 
             {/* Share button */}
             <button
-              onClick={async () => {
+              onClick={() => {
                 const shareUrl = `${window.location.origin}/profile/${profileId}`;
                 const shareText = `Check out ${name}'s profile`;
 
                 try {
-                  if (window.Telegram?.WebApp?.openTelegramLink) {
-                    const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
-                    window.Telegram.WebApp.openTelegramLink(tgShareUrl);
+                  if (shareURL.isAvailable()) {
+                    shareURL(shareUrl, shareText);
                   } else if (navigator.share) {
-                    await navigator.share({
+                    navigator.share({
                       title: `${name}'s Profile`,
                       text: shareText,
                       url: shareUrl,
                     });
                   } else {
-                    await navigator.clipboard.writeText(shareUrl);
+                    navigator.clipboard.writeText(shareUrl);
                     alert('Profile link copied to clipboard!');
                   }
                 } catch (err) {

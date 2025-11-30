@@ -327,6 +327,7 @@ export default function ProfilePage() {
                 cursor: 'pointer',
                 fontSize: '14px',
                 fontWeight: '500',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
               }}
             >
               Settings
