@@ -114,6 +114,7 @@ export default function SettingsPage() {
       <div
         style={{
           padding: '16px',
+          paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
           display: 'flex',
           flexDirection: 'column',
           gap: '24px',
@@ -278,16 +279,6 @@ export default function SettingsPage() {
               </Text>
             </div>
 
-            <Button
-              size="l"
-              stretched
-              onClick={handleSave}
-              disabled={isSaving}
-              loading={isSaving}
-            >
-              {isSaving ? 'Saving...' : 'Save Settings'}
-            </Button>
-
             <div
               style={{
                 padding: '12px',
@@ -303,6 +294,32 @@ export default function SettingsPage() {
           </>
         )}
       </div>
+
+      {/* Fixed save button at bottom */}
+      {!isLoading && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            padding: '12px 16px',
+            paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+            backgroundColor: 'var(--tg-theme-bg-color, #fff)',
+            borderTop: '1px solid var(--tg-theme-hint-color, #eee)',
+          }}
+        >
+          <Button
+            size="l"
+            stretched
+            onClick={handleSave}
+            disabled={isSaving}
+            loading={isSaving}
+          >
+            {isSaving ? 'Saving...' : 'Save Settings'}
+          </Button>
+        </div>
+      )}
     </Page>
   );
 }

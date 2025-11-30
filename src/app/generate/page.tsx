@@ -5,6 +5,7 @@ import { Button, Text } from '@telegram-apps/telegram-ui';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { Combobox, ComboboxOption } from '@/components/Combobox';
 import { Page } from '@/components/Page';
 import { TabNavigation } from '@/components/TabNavigation';
 import { AVAILABLE_MODELS } from '@/lib/openrouter';
@@ -39,13 +40,21 @@ export default function GeneratePage() {
   const [prompt, setPrompt] = useState('');
   const [title, setTitle] = useState('');
   const [selectedModel, setSelectedModel] = useState('anthropic/claude-sonnet-4.5');
-  const [customModel, setCustomModel] = useState<string | null>(null);
   const [hasApiKey, setHasApiKey] = useState(false);
   const [isFreeMode, setIsFreeMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showCustomModel, setShowCustomModel] = useState(false);
+
+  // Convert AVAILABLE_MODELS to ComboboxOption format
+  const modelOptions: ComboboxOption[] = useMemo(
+    () =>
+      AVAILABLE_MODELS.map((model) => ({
+        value: model.id,
+        label: model.name,
+      })),
+    []
+  );
 
   // Load user's API key status and FREE_MODE from settings
   const loadSettings = useCallback(async () => {
@@ -60,7 +69,6 @@ export default function GeneratePage() {
 
       if (response.ok && data.settings) {
         setHasApiKey(Boolean(data.settings.openrouter_api_key));
-        setCustomModel(data.settings.custom_model || null);
       }
 
       // Check FREE_MODE from env
@@ -80,8 +88,7 @@ export default function GeneratePage() {
     void loadSettings();
   }, [loadSettings]);
 
-  const actualModel = selectedModel === 'custom' && customModel ? customModel : selectedModel;
-  const isFreeModel = actualModel.includes(':free');
+  const isFreeModel = selectedModel.includes(':free');
   const needsApiKey = !isFreeMode && !isFreeModel && !hasApiKey;
 
   const handleGenerate = async () => {
@@ -98,7 +105,6 @@ export default function GeneratePage() {
     setError(null);
 
     try {
-      const modelToUse = selectedModel === 'custom' && customModel ? customModel : selectedModel;
       const response = await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -106,7 +112,7 @@ export default function GeneratePage() {
           prompt,
           title: title.trim() || undefined,
           user: viewer,
-          model: modelToUse,
+          model: selectedModel,
         }),
       });
 
@@ -127,9 +133,7 @@ export default function GeneratePage() {
     }
   };
 
-  const currentModelConfig = selectedModel === 'custom' && customModel
-    ? { id: customModel, name: `Custom: ${customModel}`, description: 'Your custom model from settings', supportsReasoning: false }
-    : AVAILABLE_MODELS.find((m) => m.id === selectedModel);
+  const currentModelConfig = AVAILABLE_MODELS.find((m) => m.id === selectedModel);
 
   return (
     <Page>
@@ -172,76 +176,26 @@ export default function GeneratePage() {
                 color: 'var(--tg-theme-hint-color)',
               }}
             >
-              AI Model
+              AI Model{' '}
+              <a
+                href="https://openrouter.ai/models?order=top-weekly"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: 'var(--tg-theme-hint-color)', opacity: 0.7 }}
+              >
+                (list)
+              </a>
             </Text>
-            <select
+            <Combobox
+              options={modelOptions}
               value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
+              onChange={setSelectedModel}
+              placeholder="Select model..."
+              searchPlaceholder="Search or enter model ID..."
               disabled={isLoading || isLoadingSettings}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: '10px',
-                border: '1px solid var(--tg-theme-hint-color, #ccc)',
-                backgroundColor: 'var(--tg-theme-secondary-bg-color, #f5f5f5)',
-                color: 'var(--tg-theme-text-color, #000)',
-                fontSize: '14px',
-              }}
-            >
-              {AVAILABLE_MODELS.map((model) => (
-                <option key={model.id} value={model.id}>
-                  {model.supportsReasoning ? '🧠 ' : ''}{model.name}
-                </option>
-              ))}
-            </select>
-
-            {/* Custom model foldable */}
-            {customModel && (
-              <div style={{ marginTop: '8px' }}>
-                <div
-                  onClick={() => setShowCustomModel(!showCustomModel)}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    backgroundColor: 'var(--tg-theme-secondary-bg-color, #f5f5f5)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <Text style={{ fontSize: '13px', color: 'var(--tg-theme-text-color)' }}>
-                    ⚙️ Custom Model
-                  </Text>
-                  <Text style={{ fontSize: '12px', color: 'var(--tg-theme-hint-color)' }}>
-                    {showCustomModel ? '▼' : '▶'}
-                  </Text>
-                </div>
-                {showCustomModel && (
-                  <div
-                    style={{
-                      marginTop: '4px',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      backgroundColor: 'var(--tg-theme-secondary-bg-color, #f5f5f5)',
-                    }}
-                  >
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                      <input
-                        type="radio"
-                        name="model"
-                        value="custom"
-                        checked={selectedModel === 'custom'}
-                        onChange={(e) => setSelectedModel(e.target.value)}
-                      />
-                      <Text style={{ fontSize: '13px', color: 'var(--tg-theme-text-color)' }}>
-                        {customModel}
-                      </Text>
-                    </label>
-                  </div>
-                )}
-              </div>
-            )}
+              allowCustom={true}
+              customLabel="Use custom model:"
+            />
           </div>
 
           {/* FREE_MODE indicator */}
