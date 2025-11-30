@@ -286,7 +286,8 @@ export default function UserProfilePage() {
             {/* Share button */}
             <button
               onClick={() => {
-                const shareUrl = `${window.location.origin}/profile/${profileId}`;
+                const botLink = process.env.NEXT_PUBLIC_BOT_LINK || 'vibe_robot';
+                const shareUrl = `https://t.me/${botLink}/bot?startapp=user_${profileId}`;
                 const shareText = `Check out ${name}'s profile`;
 
                 try {

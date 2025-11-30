@@ -1,7 +1,7 @@
 'use client';
 
 import { initData, useSignal } from '@telegram-apps/sdk-react';
-import { Avatar, Section, Spinner, Text } from '@telegram-apps/telegram-ui';
+import { Spinner, Text } from '@telegram-apps/telegram-ui';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -253,144 +253,147 @@ export default function ModelProfilePage() {
   };
 
   // Provider emoji/icon
-  const getProviderEmoji = (provider: string) => {
-    const p = provider.toLowerCase();
-    if (p.includes('anthropic')) return '🤖';
-    if (p.includes('openai')) return '🧠';
-    if (p.includes('x-ai') || p.includes('xai')) return '✨';
-    if (p.includes('google')) return '🔮';
+  const getProviderEmoji = () => {
     return '🤖';
   };
+
+  const totalLikes = posts.reduce((sum, p) => sum + (p.likes_count || 0), 0);
 
   return (
     <Page>
       <div
         style={{
-          padding: '16px',
           display: 'flex',
           flexDirection: 'column',
           gap: '12px',
           paddingBottom: 'calc(258px + env(safe-area-inset-bottom, 0px))',
+          overflowX: 'hidden',
         }}
       >
-        <Section header="AI Model">
-          <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-              <div
-                style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: '50%',
-                  backgroundColor: model?.is_free ? '#d1fae5' : '#e0e7ff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '36px',
-                  flexShrink: 0,
-                }}
-              >
-                {model ? getProviderEmoji(model.provider) : '🤖'}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
-                <Text weight="2" style={{ fontSize: '20px' }}>
-                  {model?.name || 'Loading...'}
-                </Text>
-                <Text style={{ color: 'var(--tg-theme-hint-color)', fontSize: '14px' }}>
-                  {model?.provider}
-                  {model?.is_free && (
-                    <span
-                      style={{
-                        marginLeft: '8px',
-                        padding: '2px 6px',
-                        backgroundColor: '#d1fae5',
-                        color: '#065f46',
-                        borderRadius: '4px',
-                        fontSize: '11px',
-                        fontWeight: 600,
-                      }}
-                    >
-                      FREE
-                    </span>
-                  )}
-                </Text>
-                {model?.description && (
-                  <Text style={{ color: 'var(--tg-theme-hint-color)', fontSize: '13px' }}>
-                    {model.description}
-                  </Text>
-                )}
-                <Text style={{ color: 'var(--tg-theme-hint-color)', fontSize: '14px' }}>
-                  {model?.posts_count || 0} {model?.posts_count === 1 ? 'post' : 'posts'} generated
-                </Text>
-              </div>
-            </div>
-
-            {/* Share button */}
-            <button
-              onClick={async () => {
-                const shareUrl = `${window.location.origin}/models/${encodeURIComponent(modelId || '')}`;
-                const shareText = `Check out ${model?.name || 'this AI model'}`;
-
-                try {
-                  if (window.Telegram?.WebApp?.openTelegramLink) {
-                    const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
-                    window.Telegram.WebApp.openTelegramLink(tgShareUrl);
-                  } else if (navigator.share) {
-                    await navigator.share({
-                      title: `${model?.name || 'AI Model'} Profile`,
-                      text: shareText,
-                      url: shareUrl,
-                    });
-                  } else {
-                    await navigator.clipboard.writeText(shareUrl);
-                    alert('Model profile link copied to clipboard!');
-                  }
-                } catch (err) {
-                  console.error('Error sharing:', err);
-                }
-              }}
+        {/* Model Header */}
+        <div
+          style={{
+            padding: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          }}
+        >
+          {/* Top row: Avatar + Stats */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+            {/* Model Avatar */}
+            <div
               style={{
-                width: '100%',
-                padding: '10px',
-                border: '1px solid var(--tg-theme-hint-color, #dbdbdb)',
-                borderRadius: '8px',
-                backgroundColor: 'transparent',
-                cursor: 'pointer',
+                width: 96,
+                height: 96,
+                borderRadius: '50%',
+                backgroundColor: model?.is_free ? '#d1fae5' : '#e0e7ff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px',
-                fontSize: '14px',
-                fontWeight: 600,
-                color: 'var(--tg-theme-text-color)',
-                transition: 'background-color 0.1s ease',
-              }}
-              onMouseDown={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--tg-theme-secondary-bg-color, #f5f5f5)';
-              }}
-              onMouseUp={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
+                fontSize: '42px',
+                flexShrink: 0,
               }}
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M22 2L11 13" />
-                <path d="M22 2L15 22L11 13L2 9L22 2Z" />
-              </svg>
-              Share Model
-            </button>
+              {getProviderEmoji()}
+            </div>
+
+            {/* Stats */}
+            <div style={{ display: 'flex', flex: 1, justifyContent: 'space-around' }}>
+              <div style={{ textAlign: 'center' }}>
+                <Text weight="1" style={{ fontSize: '18px', display: 'block' }}>
+                  {model?.posts_count || 0}
+                </Text>
+                <Text style={{ fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
+                  posts
+                </Text>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <Text weight="1" style={{ fontSize: '18px', display: 'block' }}>
+                  {totalLikes}
+                </Text>
+                <Text style={{ fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
+                  likes
+                </Text>
+              </div>
+            </div>
           </div>
-        </Section>
+
+          {/* Name + Info */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <Text weight="2" style={{ fontSize: '16px' }}>
+              {model?.name || 'Loading...'}
+            </Text>
+            <Text style={{ fontSize: '14px', color: 'var(--tg-theme-hint-color)' }}>
+              {model?.provider}
+            </Text>
+            {model?.description && (
+              <Text style={{ fontSize: '13px', color: 'var(--tg-theme-hint-color)', marginTop: '4px' }}>
+                {model.description}
+              </Text>
+            )}
+          </div>
+
+          {/* Share button */}
+          <button
+            onClick={async () => {
+              const botLink = process.env.NEXT_PUBLIC_BOT_LINK || 'vibe_robot';
+              // Base64 encode model ID for URL safety (handles slashes and special chars)
+              const encodedModelId = btoa(modelId || '').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+              const shareUrl = `https://t.me/${botLink}/bot?startapp=model_${encodedModelId}`;
+              const shareText = `Check out ${model?.name || 'this AI model'}`;
+
+              try {
+                if (window.Telegram?.WebApp?.openTelegramLink) {
+                  const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
+                  window.Telegram.WebApp.openTelegramLink(tgShareUrl);
+                } else if (navigator.share) {
+                  await navigator.share({
+                    title: `${model?.name || 'AI Model'} Profile`,
+                    text: shareText,
+                    url: shareUrl,
+                  });
+                } else {
+                  await navigator.clipboard.writeText(shareUrl);
+                  alert('Model profile link copied to clipboard!');
+                }
+              } catch (err) {
+                console.error('Error sharing:', err);
+              }
+            }}
+            style={{
+              width: '100%',
+              padding: '8px 16px',
+              borderRadius: '10px',
+              border: 'none',
+              backgroundColor: 'var(--tg-theme-button-color, #3390ec)',
+              color: 'var(--tg-theme-button-text-color, #fff)',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '600',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+            }}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M22 2L11 13" />
+              <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+            </svg>
+            Share Model
+          </button>
+        </div>
 
         {error && (
           <div
@@ -419,13 +422,11 @@ export default function ModelProfilePage() {
             <Spinner size="l" />
           </div>
         ) : posts.length === 0 ? (
-          <Section header="No posts yet">
-            <div style={{ padding: '12px' }}>
-              <Text style={{ color: 'var(--tg-theme-hint-color)' }}>
-                No posts have been generated with this model yet.
-              </Text>
-            </div>
-          </Section>
+          <div style={{ padding: '16px' }}>
+            <Text style={{ color: 'var(--tg-theme-hint-color)' }}>
+              No posts have been generated with this model yet.
+            </Text>
+          </div>
         ) : (
           posts.map((post) => (
             <PostCard

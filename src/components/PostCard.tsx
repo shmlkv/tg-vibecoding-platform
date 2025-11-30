@@ -557,7 +557,8 @@ export function PostCard({
           {isAuthor && !isGenerating && !isFailed && (
             <button
               onClick={async () => {
-                const shareUrl = `${window.location.origin}/preview?postId=${post.id}`;
+                const botLink = process.env.NEXT_PUBLIC_BOT_LINK || 'vibe_robot';
+                const shareUrl = `https://t.me/${botLink}/bot?startapp=post_${post.id}`;
                 const shareText = `Check out this project: ${post.prompt}`;
 
                 try {
@@ -662,7 +663,8 @@ export function PostCard({
           {(!isAuthor || isGenerating || isFailed) && (
             <button
               onClick={async () => {
-                const shareUrl = `${window.location.origin}/preview?postId=${post.id}`;
+                const botLink = process.env.NEXT_PUBLIC_BOT_LINK || 'vibe_robot';
+                const shareUrl = `https://t.me/${botLink}/bot?startapp=post_${post.id}`;
                 const shareText = `Check out this project: ${post.prompt}`;
 
                 try {
