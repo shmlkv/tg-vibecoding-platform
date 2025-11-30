@@ -9,15 +9,24 @@ const FeedIcon = ({ isActive }: { isActive: boolean }) => (
     height="24"
     viewBox="0 0 24 24"
     fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
   >
-    <rect x="3" y="3" width="7" height="7" fill={isActive ? 'currentColor' : 'none'} />
-    <rect x="14" y="3" width="7" height="7" fill={isActive ? 'currentColor' : 'none'} />
-    <rect x="14" y="14" width="7" height="7" fill={isActive ? 'currentColor' : 'none'} />
-    <rect x="3" y="14" width="7" height="7" fill={isActive ? 'currentColor' : 'none'} />
+    <rect
+      x="2"
+      y="2"
+      width="20"
+      height="20"
+      rx="2"
+      fill={isActive ? 'currentColor' : 'none'}
+      stroke={isActive ? 'none' : 'currentColor'}
+      strokeWidth={isActive ? '0' : '2'}
+    />
+    <path
+      d="M7 2v20M17 2v20M2 12h20M2 7h20M2 17h20"
+      stroke={isActive ? 'var(--tg-theme-bg-color, #fff)' : 'currentColor'}
+      strokeWidth="2"
+    />
   </svg>
 );
 

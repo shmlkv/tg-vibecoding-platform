@@ -207,12 +207,12 @@ export default function SettingsPage() {
               >
                 Get your API key from{' '}
                 <a
-                  href="https://openrouter.ai/keys"
+                  href="https://openrouter.ai/settings/keys"
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ color: 'var(--tg-theme-link-color)', textDecoration: 'underline' }}
                 >
-                  openrouter.ai/keys
+                  openrouter.ai/settings/keys
                 </a>
               </Text>
             </div>

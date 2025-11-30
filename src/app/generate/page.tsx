@@ -45,6 +45,7 @@ export default function GeneratePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showCustomModel, setShowCustomModel] = useState(false);
 
   // Load user's API key status and FREE_MODE from settings
   const loadSettings = useCallback(async () => {
@@ -192,23 +193,54 @@ export default function GeneratePage() {
                   {model.supportsReasoning ? '🧠 ' : ''}{model.name}
                 </option>
               ))}
-              {customModel && (
-                <option value="custom">
-                  ⚙️ Custom: {customModel}
-                </option>
-              )}
             </select>
-            {currentModelConfig && (
-              <Text
-                style={{
-                  display: 'block',
-                  marginTop: '4px',
-                  fontSize: '12px',
-                  color: currentModelConfig.supportsReasoning ? '#065f46' : 'var(--tg-theme-hint-color)',
-                }}
-              >
-                {currentModelConfig.supportsReasoning && '🧠 '}{currentModelConfig.description}
-              </Text>
+
+            {/* Custom model foldable */}
+            {customModel && (
+              <div style={{ marginTop: '8px' }}>
+                <div
+                  onClick={() => setShowCustomModel(!showCustomModel)}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    backgroundColor: 'var(--tg-theme-secondary-bg-color, #f5f5f5)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <Text style={{ fontSize: '13px', color: 'var(--tg-theme-text-color)' }}>
+                    ⚙️ Custom Model
+                  </Text>
+                  <Text style={{ fontSize: '12px', color: 'var(--tg-theme-hint-color)' }}>
+                    {showCustomModel ? '▼' : '▶'}
+                  </Text>
+                </div>
+                {showCustomModel && (
+                  <div
+                    style={{
+                      marginTop: '4px',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      backgroundColor: 'var(--tg-theme-secondary-bg-color, #f5f5f5)',
+                    }}
+                  >
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="model"
+                        value="custom"
+                        checked={selectedModel === 'custom'}
+                        onChange={(e) => setSelectedModel(e.target.value)}
+                      />
+                      <Text style={{ fontSize: '13px', color: 'var(--tg-theme-text-color)' }}>
+                        {customModel}
+                      </Text>
+                    </label>
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
@@ -216,59 +248,57 @@ export default function GeneratePage() {
           {isFreeMode && (
             <div
               style={{
-                padding: '14px 16px',
+                padding: '10px 12px',
                 background: 'transparent',
-                borderRadius: '14px',
+                borderRadius: '12px',
                 border: '1px solid rgba(102, 126, 234, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
               }}
             >
-              <div
+              <Text
+                weight="2"
                 style={{
-                  fontSize: '20px',
-                  lineHeight: '1',
+                  fontSize: '13px',
+                  color: 'var(--tg-theme-text-color)',
+                  marginBottom: '2px',
+                  display: 'block',
                 }}
               >
-                ✨
-              </div>
-              <div style={{ flex: 1 }}>
-                <Text
-                  weight="2"
-                  style={{
-                    fontSize: '14px',
-                    color: 'var(--tg-theme-text-color)',
-                    marginBottom: '2px',
-                    display: 'block',
-                  }}
-                >
-                  Free during beta test
-                </Text>
-                <Text style={{ fontSize: '12px', color: 'var(--tg-theme-hint-color)' }}>
-                  You can add OpenRouter key in Settings later
-                </Text>
-              </div>
+                ✨ Free during beta test
+              </Text>
+              <Text style={{ fontSize: '12px', color: 'var(--tg-theme-hint-color)' }}>
+                You can add OpenRouter key in Settings later
+              </Text>
             </div>
           )}
 
           {/* Warning if API key needed */}
-          {needsApiKey && (
+          {!isLoadingSettings && needsApiKey && (
             <div
               style={{
                 padding: '10px 12px',
-                backgroundColor: '#fef3c7',
-                borderRadius: '10px',
-                border: '1px solid #fcd34d',
+                background: 'transparent',
+                borderRadius: '12px',
+                border: '1px solid rgba(234, 179, 8, 0.3)',
               }}
             >
-              <Text style={{ fontSize: '13px', color: '#92400e' }}>
-                This model requires an API key.{' '}
+              <Text
+                weight="2"
+                style={{
+                  fontSize: '13px',
+                  color: 'var(--tg-theme-text-color)',
+                  marginBottom: '2px',
+                  display: 'block',
+                }}
+              >
+                ⚠️ High load detected
+              </Text>
+              <Text style={{ fontSize: '12px', color: 'var(--tg-theme-hint-color)' }}>
+                Please add your OpenRouter API key in{' '}
                 <span
                   onClick={() => router.push('/settings')}
-                  style={{ textDecoration: 'underline', cursor: 'pointer' }}
+                  style={{ textDecoration: 'underline', cursor: 'pointer', color: 'var(--tg-theme-link-color, #3390ec)' }}
                 >
-                  Configure in Settings
+                  Settings
                 </span>
               </Text>
             </div>
@@ -315,7 +345,7 @@ export default function GeneratePage() {
             disabled={isLoading || !prompt.trim() || needsApiKey}
             loading={isLoading}
           >
-            {isLoading ? 'Generating…' : `✨ Generate with ${currentModelConfig?.name.split(': ')[1] || 'AI'}`}
+            {isLoading ? 'Generating…' : 'Generate'}
           </Button>
 
         </div>
