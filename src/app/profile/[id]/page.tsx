@@ -65,6 +65,15 @@ export default function UserProfilePage() {
     setError(null);
 
     try {
+      // Register current viewer if logged in
+      if (viewer?.id) {
+        await fetch('/api/users/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(viewer),
+        });
+      }
+
       const query = new URLSearchParams();
       if (viewer?.id) {
         query.set('userId', viewer.id);
@@ -98,7 +107,7 @@ export default function UserProfilePage() {
     } finally {
       setIsLoading(false);
     }
-  }, [profileId, viewer?.id]);
+  }, [profileId, viewer]);
 
   // Refresh only pending posts without reloading the entire profile
   const refreshPendingPosts = useCallback(async () => {
@@ -268,7 +277,7 @@ export default function UserProfilePage() {
         <Section header="Profile">
           <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-              <Avatar size={64} src={profile?.photo_url || undefined} acronym={name.slice(0, 2)} />
+              <Avatar size={96} src={profile?.photo_url || undefined} acronym={name.slice(0, 2)} />
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
                 <Text weight="2" style={{ fontSize: '20px' }}>
                   {name}

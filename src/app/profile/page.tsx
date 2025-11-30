@@ -51,6 +51,13 @@ export default function ProfilePage() {
     setIsLoading(true);
     setError(null);
     try {
+      // First, register/upsert user to ensure they exist in DB
+      await fetch('/api/users/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(viewer),
+      });
+
       const [userRes, postsRes] = await Promise.all([
         fetch(`/api/users/${viewer.id}`),
         fetch(`/api/posts?userId=${encodeURIComponent(viewer.id)}&authorId=${encodeURIComponent(viewer.id)}`),
@@ -77,7 +84,7 @@ export default function ProfilePage() {
     } finally {
       setIsLoading(false);
     }
-  }, [viewer?.id]);
+  }, [viewer]);
 
   // Refresh only pending posts without reloading the entire profile
   const refreshPendingPosts = useCallback(async () => {
