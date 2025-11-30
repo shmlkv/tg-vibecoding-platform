@@ -152,12 +152,6 @@ export const AVAILABLE_MODELS = [
     description: '1M context, multimodal reasoning',
     supportsReasoning: true,
   },
-  {
-    id: 'anthropic/claude-opus-4.5',
-    name: 'Anthropic: Claude Opus 4.5',
-    description: 'Most capable, complex workflows',
-    supportsReasoning: true,
-  },
 ] as const;
 
 export type ModelId = typeof AVAILABLE_MODELS[number]['id'];

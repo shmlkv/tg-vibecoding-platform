@@ -73,7 +73,11 @@ export async function POST(
       .eq('user_id', parseInt(userId, 10))
       .maybeSingle();
 
-    const apiKey = settings?.openrouter_api_key || process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API;
+    const isFreeMode = process.env.FREE_MODE === 'true';
+    const envApiKey = process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API;
+
+    // In free mode, always use the shared env API key
+    const apiKey = isFreeMode ? envApiKey : (settings?.openrouter_api_key || envApiKey);
     if (!apiKey) {
       return NextResponse.json({ error: 'API key not configured' }, { status: 400 });
     }

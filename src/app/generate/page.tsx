@@ -38,14 +38,15 @@ export default function GeneratePage() {
 
   const [prompt, setPrompt] = useState('');
   const [title, setTitle] = useState('');
-  const [selectedModel, setSelectedModel] = useState('x-ai/grok-4.1-fast:free');
+  const [selectedModel, setSelectedModel] = useState('anthropic/claude-sonnet-4.5');
   const [customModel, setCustomModel] = useState<string | null>(null);
   const [hasApiKey, setHasApiKey] = useState(false);
+  const [isFreeMode, setIsFreeMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load user's API key status from settings
+  // Load user's API key status and FREE_MODE from settings
   const loadSettings = useCallback(async () => {
     if (!viewer?.id) {
       setIsLoadingSettings(false);
@@ -60,6 +61,13 @@ export default function GeneratePage() {
         setHasApiKey(Boolean(data.settings.openrouter_api_key));
         setCustomModel(data.settings.custom_model || null);
       }
+
+      // Check FREE_MODE from env
+      const freeModeResponse = await fetch('/api/free-mode');
+      const freeModeData = await freeModeResponse.json();
+      if (freeModeResponse.ok) {
+        setIsFreeMode(freeModeData.isFreeMode);
+      }
     } catch {
       // Ignore errors, use default
     } finally {
@@ -73,10 +81,17 @@ export default function GeneratePage() {
 
   const actualModel = selectedModel === 'custom' && customModel ? customModel : selectedModel;
   const isFreeModel = actualModel.includes(':free');
-  const needsApiKey = !isFreeModel && !hasApiKey;
+  const needsApiKey = !isFreeMode && !isFreeModel && !hasApiKey;
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
+
+    // Show toast if API key is needed
+    if (needsApiKey) {
+      setError('Please configure your OpenRouter API key in Settings or use a free model');
+      setTimeout(() => setError(null), 5000);
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
@@ -103,7 +118,9 @@ export default function GeneratePage() {
       // Redirect to profile to see the new post with auto-refresh
       router.push('/profile');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      const errorMessage = err instanceof Error ? err.message : 'Something went wrong';
+      setError(errorMessage);
+      setTimeout(() => setError(null), 5000);
     } finally {
       setIsLoading(false);
     }
@@ -195,6 +212,46 @@ export default function GeneratePage() {
             )}
           </div>
 
+          {/* FREE_MODE indicator */}
+          {isFreeMode && (
+            <div
+              style={{
+                padding: '14px 16px',
+                background: 'transparent',
+                borderRadius: '14px',
+                border: '1px solid rgba(102, 126, 234, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '20px',
+                  lineHeight: '1',
+                }}
+              >
+                ✨
+              </div>
+              <div style={{ flex: 1 }}>
+                <Text
+                  weight="2"
+                  style={{
+                    fontSize: '14px',
+                    color: 'var(--tg-theme-text-color)',
+                    marginBottom: '2px',
+                    display: 'block',
+                  }}
+                >
+                  Free during beta test
+                </Text>
+                <Text style={{ fontSize: '12px', color: 'var(--tg-theme-hint-color)' }}>
+                  You can add OpenRouter key in Settings later
+                </Text>
+              </div>
+            </div>
+          )}
+
           {/* Warning if API key needed */}
           {needsApiKey && (
             <div
@@ -221,12 +278,31 @@ export default function GeneratePage() {
         {error && (
           <div
             style={{
-              padding: '12px',
-              backgroundColor: '#ff4444',
-              borderRadius: '8px',
+              position: 'fixed',
+              bottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',
+              left: '12px',
+              right: '12px',
+              padding: '12px 16px',
+              backgroundColor: '#dc2626',
+              borderRadius: '12px',
               color: 'white',
+              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
+              zIndex: 1000,
+              animation: 'slideUp 0.3s ease-out',
             }}
           >
+            <style jsx>{`
+              @keyframes slideUp {
+                from {
+                  opacity: 0;
+                  transform: translateY(20px);
+                }
+                to {
+                  opacity: 1;
+                  transform: translateY(0);
+                }
+              }
+            `}</style>
             {error}
           </div>
         )}
