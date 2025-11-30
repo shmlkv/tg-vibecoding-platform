@@ -218,7 +218,7 @@ export const AVAILABLE_MODELS = [
 
 export type ModelId = typeof AVAILABLE_MODELS[number]['id'];
 
-const OPENROUTER_API_BASE = 'http://127.0.0.1:10100/api/v1';
+const OPENROUTER_API_BASE = 'https://openrouter.ai/api/v1';
 
 interface OpenRouterMessage {
   role: 'system' | 'user' | 'assistant';
