@@ -173,7 +173,7 @@ export function PostCard({
   }, [post.project?.html_content]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 0, paddingBottom: '0', marginBottom: '16px', backgroundColor: 'var(--tg-theme-bg-color, #ffffff)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0, paddingBottom: '0', marginBottom: '4px', backgroundColor: 'var(--tg-theme-bg-color, #ffffff)' }}>
       <div
         style={{
           display: 'flex',
