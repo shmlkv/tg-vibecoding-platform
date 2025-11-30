@@ -557,8 +557,9 @@ export function PostCard({
           {isAuthor && !isGenerating && !isFailed && (
             <button
               onClick={async () => {
-                const botLink = process.env.NEXT_PUBLIC_BOT_LINK || 'vibe_robot';
-                const shareUrl = `https://t.me/${botLink}/bot?startapp=post_${post.id}`;
+                const botLink = process.env.NEXT_PUBLIC_BOT_LINK || 'GoldHourBot';
+                const botApp = process.env.NEXT_PUBLIC_BOT_APP || 'bot';
+                const shareUrl = `https://t.me/${botLink}/${botApp}?startapp=post_${post.id}`;
                 const shareText = `Check out this project: ${post.prompt}`;
 
                 try {
@@ -663,8 +664,9 @@ export function PostCard({
           {(!isAuthor || isGenerating || isFailed) && (
             <button
               onClick={async () => {
-                const botLink = process.env.NEXT_PUBLIC_BOT_LINK || 'vibe_robot';
-                const shareUrl = `https://t.me/${botLink}/bot?startapp=post_${post.id}`;
+                const botLink = process.env.NEXT_PUBLIC_BOT_LINK || 'GoldHourBot';
+                const botApp = process.env.NEXT_PUBLIC_BOT_APP || 'bot';
+                const shareUrl = `https://t.me/${botLink}/${botApp}?startapp=post_${post.id}`;
                 const shareText = `Check out this project: ${post.prompt}`;
 
                 try {

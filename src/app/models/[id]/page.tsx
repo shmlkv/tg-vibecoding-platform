@@ -337,10 +337,11 @@ export default function ModelProfilePage() {
           {/* Share button */}
           <button
             onClick={async () => {
-              const botLink = process.env.NEXT_PUBLIC_BOT_LINK || 'vibe_robot';
+              const botLink = process.env.NEXT_PUBLIC_BOT_LINK || 'GoldHourBot';
+              const botApp = process.env.NEXT_PUBLIC_BOT_APP || 'bot';
               // Base64 encode model ID for URL safety (handles slashes and special chars)
               const encodedModelId = btoa(modelId || '').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-              const shareUrl = `https://t.me/${botLink}/bot?startapp=model_${encodedModelId}`;
+              const shareUrl = `https://t.me/${botLink}/${botApp}?startapp=model_${encodedModelId}`;
               const shareText = `Check out ${model?.name || 'this AI model'}`;
 
               try {

@@ -9,6 +9,17 @@ import { Page } from '@/components/Page';
 import { PostCard, type PostCardData, type UserSummary } from '@/components/PostCard';
 import { TabNavigation } from '@/components/TabNavigation';
 
+// Telegram WebApp types
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp?: {
+        openTelegramLink?: (url: string) => void;
+      };
+    };
+  }
+}
+
 type ProfileStats = {
   totalPosts: number;
   joinedAt?: string;
@@ -356,24 +367,81 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {/* Action button */}
-          <button
-            onClick={() => router.push('/settings')}
-            style={{
-              width: '100%',
-              padding: '8px 16px',
-              borderRadius: '10px',
-              border: 'none',
-              backgroundColor: 'var(--tg-theme-button-color, #3390ec)',
-              color: 'var(--tg-theme-button-text-color, #fff)',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '600',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-            }}
-          >
-            Settings
-          </button>
+          {/* Action buttons */}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={() => router.push('/settings')}
+              style={{
+                flex: 1,
+                padding: '8px 16px',
+                borderRadius: '10px',
+                border: 'none',
+                backgroundColor: 'var(--tg-theme-button-color, #3390ec)',
+                color: 'var(--tg-theme-button-text-color, #fff)',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+              }}
+            >
+              Settings
+            </button>
+            <button
+              onClick={() => {
+                const botLink = process.env.NEXT_PUBLIC_BOT_LINK || 'GoldHourBot';
+                const botApp = process.env.NEXT_PUBLIC_BOT_APP || 'bot';
+                const shareUrl = `https://t.me/${botLink}/${botApp}?startapp=user_${viewer?.id}`;
+                const shareText = `Check out ${name}'s profile`;
+
+                try {
+                  if (window.Telegram?.WebApp?.openTelegramLink) {
+                    const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
+                    window.Telegram.WebApp.openTelegramLink(tgShareUrl);
+                  } else if (navigator.share) {
+                    navigator.share({
+                      title: `${name}'s Profile`,
+                      text: shareText,
+                      url: shareUrl,
+                    });
+                  } else {
+                    navigator.clipboard.writeText(shareUrl);
+                    alert('Profile link copied to clipboard!');
+                  }
+                } catch (err) {
+                  console.error('Error sharing:', err);
+                }
+              }}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '10px',
+                border: '1px solid var(--tg-theme-hint-color, #dbdbdb)',
+                backgroundColor: 'transparent',
+                color: 'var(--tg-theme-text-color)',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M22 2L11 13" />
+                <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+              </svg>
+              Share
+            </button>
+          </div>
         </div>
 
         {error && (

@@ -33,7 +33,6 @@ function RootInner({ children }: PropsWithChildren) {
   // Handle startParam for deep linking (e.g., model_xxx -> /models/xxx)
   useEffect(() => {
     const startParam = lp.tgWebAppStartParam;
-    console.log('[Deep Link] startParam:', startParam, 'full lp:', lp);
     if (!startParam) return;
 
     // Helper to decode base64url to original string
@@ -61,7 +60,7 @@ function RootInner({ children }: PropsWithChildren) {
     } else if (startParam.startsWith('post_')) {
       const postId = startParam.slice(5); // Remove 'post_' prefix
       if (postId) {
-        router.replace(`/preview?postId=${postId}`);
+        router.replace(`/posts/${postId}`);
       }
     } else if (startParam.startsWith('user_')) {
       const userId = startParam.slice(5); // Remove 'user_' prefix
