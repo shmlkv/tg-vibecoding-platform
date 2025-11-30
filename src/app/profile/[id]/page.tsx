@@ -9,6 +9,17 @@ import { Page } from '@/components/Page';
 import { PostCard, type PostCardData, type UserSummary } from '@/components/PostCard';
 import { TabNavigation } from '@/components/TabNavigation';
 
+// Telegram WebApp types
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp?: {
+        openTelegramLink?: (url: string) => void;
+      };
+    };
+  }
+}
+
 type ProfileStats = {
   totalPosts: number;
   joinedAt?: string;
@@ -255,21 +266,89 @@ export default function UserProfilePage() {
         }}
       >
         <Section header="Profile">
-          <div style={{ padding: '12px', display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <Avatar size={48} src={profile?.photo_url || undefined} acronym={name.slice(0, 2)} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <Text weight="2" style={{ fontSize: '18px' }}>
-                {name}
-              </Text>
-              <Text style={{ color: 'var(--tg-theme-hint-color)' }}>
-                {stats.totalPosts} generated
-              </Text>
-              {stats.joinedAt && (
-                <Text style={{ color: 'var(--tg-theme-hint-color)' }}>
-                  Joined {new Date(stats.joinedAt).toLocaleDateString()}
+          <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+              <Avatar size={64} src={profile?.photo_url || undefined} acronym={name.slice(0, 2)} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                <Text weight="2" style={{ fontSize: '20px' }}>
+                  {name}
                 </Text>
-              )}
+                <Text style={{ color: 'var(--tg-theme-hint-color)', fontSize: '14px' }}>
+                  {stats.totalPosts} {stats.totalPosts === 1 ? 'post' : 'posts'}
+                </Text>
+                {stats.joinedAt && (
+                  <Text style={{ color: 'var(--tg-theme-hint-color)', fontSize: '13px' }}>
+                    Joined {new Date(stats.joinedAt).toLocaleDateString()}
+                  </Text>
+                )}
+              </div>
             </div>
+
+            {/* Share button */}
+            <button
+              onClick={async () => {
+                const shareUrl = `${window.location.origin}/profile/${profileId}`;
+                const shareText = `Check out ${name}'s profile`;
+
+                try {
+                  if (window.Telegram?.WebApp?.openTelegramLink) {
+                    const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
+                    window.Telegram.WebApp.openTelegramLink(tgShareUrl);
+                  } else if (navigator.share) {
+                    await navigator.share({
+                      title: `${name}'s Profile`,
+                      text: shareText,
+                      url: shareUrl,
+                    });
+                  } else {
+                    await navigator.clipboard.writeText(shareUrl);
+                    alert('Profile link copied to clipboard!');
+                  }
+                } catch (err) {
+                  console.error('Error sharing:', err);
+                }
+              }}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid var(--tg-theme-hint-color, #dbdbdb)',
+                borderRadius: '8px',
+                backgroundColor: 'transparent',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                fontSize: '14px',
+                fontWeight: 600,
+                color: 'var(--tg-theme-text-color)',
+                transition: 'background-color 0.1s ease',
+              }}
+              onMouseDown={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--tg-theme-secondary-bg-color, #f5f5f5)';
+              }}
+              onMouseUp={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M22 2L11 13" />
+                <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+              </svg>
+              Share Profile
+            </button>
           </div>
         </Section>
 

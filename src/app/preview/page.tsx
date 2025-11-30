@@ -2,9 +2,10 @@
 
 import { Spinner, Text } from '@telegram-apps/telegram-ui';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Page } from '@/components/Page';
+import { wrapHtmlWithMute } from '@/lib/iframe-mute';
 
 type PostResponse = {
   post: {
@@ -91,6 +92,12 @@ export default function PreviewPage() {
     return () => clearInterval(interval);
   }, [status, postId, fetchPost]);
 
+  // Wrap HTML content with mute script
+  const mutedHtmlContent = useMemo(() => {
+    if (!htmlContent) return null;
+    return wrapHtmlWithMute(htmlContent);
+  }, [htmlContent]);
+
   if (!url && !htmlContent && !isLoading && status !== 'pending') {
     return (
       <Page>
@@ -165,9 +172,9 @@ export default function PreviewPage() {
             </Text>
           </div>
         )}
-        {htmlContent && status !== 'pending' && (
+        {mutedHtmlContent && status !== 'pending' && (
           <iframe
-            srcDoc={htmlContent}
+            srcDoc={mutedHtmlContent}
             onLoad={() => setIsLoading(false)}
             style={{
               width: '100%',

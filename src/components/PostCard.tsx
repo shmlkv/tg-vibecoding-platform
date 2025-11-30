@@ -1,7 +1,19 @@
 'use client';
 
 import { Avatar, Button, Spinner, Text } from '@telegram-apps/telegram-ui';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { wrapHtmlWithMute } from '@/lib/iframe-mute';
+
+// Telegram WebApp types
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp?: {
+        openTelegramLink?: (url: string) => void;
+      };
+    };
+  }
+}
 
 export type UserSummary = {
   id: string;
@@ -138,6 +150,7 @@ export function PostCard({
 }: PostCardProps) {
   const [isFrameLoading, setIsFrameLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [likeAnimation, setLikeAnimation] = useState(false);
 
   const hasHtmlContent = Boolean(post.project?.html_content);
   const hasV0Demo = Boolean(post.v0_demo_url && post.v0_demo_url !== 'pending' && post.v0_demo_url !== 'failed');
@@ -153,14 +166,20 @@ export function PostCard({
   const canOpenAuthor = Boolean(onOpenAuthor && post.user?.id);
   const canOpenModel = Boolean(onOpenModel && post.model?.id);
 
+  // Wrap HTML content with mute script
+  const mutedHtmlContent = useMemo(() => {
+    if (!post.project?.html_content) return null;
+    return wrapHtmlWithMute(post.project.html_content);
+  }, [post.project?.html_content]);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderBottom: '1px solid var(--tg-theme-hint-color, #d1d5db)', paddingBottom: '12px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0, borderBottom: '1px solid var(--tg-theme-hint-color, #dbdbdb)', paddingBottom: '0', marginBottom: '16px', backgroundColor: 'var(--tg-theme-bg-color, #ffffff)' }}>
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: '12px',
-          padding: '12px',
+          padding: '12px 16px',
           justifyContent: 'space-between',
         }}
       >
@@ -331,8 +350,8 @@ export function PostCard({
         style={{
           position: 'relative',
           overflow: 'hidden',
-          border: '1px solid var(--tg-theme-hint-color, #d1d5db)',
-          backgroundColor: 'var(--tg-theme-secondary-bg-color, #f9fafb)',
+          border: 'none',
+          backgroundColor: 'var(--tg-theme-secondary-bg-color, #fafafa)',
           aspectRatio: '1',
           width: '100%',
         }}
@@ -416,9 +435,9 @@ export function PostCard({
                 <Spinner size="l" />
               </div>
             )}
-            {hasHtmlContent ? (
+            {hasHtmlContent && mutedHtmlContent ? (
               <iframe
-                srcDoc={post.project?.html_content}
+                srcDoc={mutedHtmlContent}
                 title={post.title}
                 onLoad={() => setIsFrameLoading(false)}
                 onError={() => setIsFrameLoading(false)}
@@ -458,12 +477,18 @@ export function PostCard({
           </>
         )}
       </div>
-      <div style={{ paddingTop: '6px', paddingLeft: '12px', paddingRight: '12px' }}>
-        <Text style={{ color: 'var(--tg-theme-text-color)' }}>{post.prompt}</Text>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', paddingTop: '12px' }}>
-          {/* Instagram-style Like button */}
+      <div style={{ paddingTop: '8px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: '16px' }}>
+        {/* Instagram-style action buttons */}
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '12px' }}>
+          {/* Like button */}
           <button
-            onClick={() => onLike(post.id)}
+            onClick={() => {
+              if (!post.liked) {
+                setLikeAnimation(true);
+                setTimeout(() => setLikeAnimation(false), 600);
+              }
+              onLike(post.id);
+            }}
             disabled={!viewerCanLike || likingId === post.id || isGenerating || isFailed}
             style={{
               background: 'none',
@@ -472,60 +497,298 @@ export function PostCard({
               cursor: viewerCanLike && likingId !== post.id && !isGenerating && !isFailed ? 'pointer' : 'default',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              fontSize: '20px',
+              gap: '4px',
+              fontSize: '24px',
               opacity: !viewerCanLike || likingId === post.id || isGenerating || isFailed ? 0.5 : 1,
+              position: 'relative',
             }}
           >
-            <span>{post.liked ? '❤️' : '🤍'}</span>
-            {post.likes_count > 0 && (
-              <Text weight="2" style={{ fontSize: '14px' }}>
-                {post.likes_count}
-              </Text>
-            )}
-          </button>
-
-          {/* Publish button for unpublished posts by author */}
-          {isAuthor && !isPublished && onPublish && !isGenerating && !isFailed && (
-            <Button
-              size="s"
-              mode="filled"
-              onClick={() => onPublish(post.id, true)}
-              disabled={publishingId === post.id}
-              loading={publishingId === post.id}
+            <svg
+              width="26"
+              height="26"
+              viewBox="0 0 24 24"
+              strokeLinecap="round"
+              strokeLinejoin="round"
               style={{
-                backgroundColor: '#10b981',
-                color: '#ffffff',
+                transform: likeAnimation ? 'scale(1.3)' : 'scale(1)',
+                transition: 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                filter: post.liked ? 'drop-shadow(0 0 4px rgba(255, 23, 68, 0.4))' : 'none',
               }}
             >
-              ✨ Publish
-            </Button>
-          )}
+              <path
+                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                fill={post.liked ? '#ff1744' : 'none'}
+                stroke={post.liked ? 'none' : 'var(--tg-theme-text-color)'}
+                strokeWidth={post.liked ? '0' : '2'}
+                style={{
+                  transition: 'none',
+                }}
+              />
+            </svg>
+            {/* Animation particles */}
+            {likeAnimation && (
+              <>
+                {[...Array(6)].map((_, i) => (
+                  <span
+                    key={i}
+                    style={{
+                      position: 'absolute',
+                      left: '50%',
+                      top: '50%',
+                      width: '4px',
+                      height: '4px',
+                      borderRadius: '50%',
+                      backgroundColor: '#ff1744',
+                      transform: `translate(-50%, -50%) rotate(${i * 60}deg) translateY(-20px)`,
+                      opacity: 0,
+                      animation: `likeParticle 0.6s ease-out`,
+                      pointerEvents: 'none',
+                    }}
+                  />
+                ))}
+              </>
+            )}
+          </button>
+          <style>{`
+            @keyframes likeParticle {
+              0% {
+                opacity: 1;
+                transform: translate(-50%, -50%) rotate(${0}deg) translateY(0px) scale(1);
+              }
+              100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) rotate(${0}deg) translateY(-30px) scale(0);
+              }
+            }
+          `}</style>
 
-          {/* Unpublish button for published posts by author */}
-          {isAuthor && isPublished && onPublish && !isGenerating && !isFailed && (
-            <Button
-              size="s"
-              mode="bezeled"
-              onClick={() => onPublish(post.id, false)}
-              disabled={publishingId === post.id}
-              loading={publishingId === post.id}
+          {/* Share button - for author when they have controls */}
+          {isAuthor && !isGenerating && !isFailed && (
+            <button
+              onClick={async () => {
+                const shareUrl = `${window.location.origin}/preview?postId=${post.id}`;
+                const shareText = `Check out this project: ${post.prompt}`;
+
+                try {
+                  // Try Telegram share first
+                  if (window.Telegram?.WebApp?.openTelegramLink) {
+                    const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
+                    window.Telegram.WebApp.openTelegramLink(tgShareUrl);
+                  } else if (navigator.share) {
+                    // Fallback to Web Share API
+                    await navigator.share({
+                      title: post.title,
+                      text: shareText,
+                      url: shareUrl,
+                    });
+                  } else {
+                    // Fallback: copy to clipboard
+                    await navigator.clipboard.writeText(shareUrl);
+                    alert('Link copied to clipboard!');
+                  }
+                } catch (err) {
+                  console.error('Error sharing:', err);
+                }
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                fontSize: '24px',
+                transition: 'transform 0.1s ease',
+              }}
+              onMouseDown={(e) => {
+                e.currentTarget.style.transform = 'scale(0.9)';
+              }}
+              onMouseUp={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
             >
-              Unpublish
-            </Button>
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="var(--tg-theme-text-color)"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M22 2L11 13" />
+                <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+              </svg>
+            </button>
           )}
 
-          <Button size="s" mode="outline" onClick={() => onOpen(post.id)}>
-            Open
-          </Button>
+          {/* Open button */}
+          <button
+            onClick={() => onOpen(post.id)}
+            disabled={isGenerating || isFailed}
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              cursor: isGenerating || isFailed ? 'default' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              fontSize: '24px',
+              opacity: isGenerating || isFailed ? 0.5 : 1,
+              transition: 'transform 0.1s ease',
+            }}
+            onMouseDown={(e) => {
+              e.currentTarget.style.transform = 'scale(0.9)';
+            }}
+            onMouseUp={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--tg-theme-text-color)"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+              <polyline points="15 3 21 3 21 9" />
+              <line x1="10" y1="14" x2="21" y2="3" />
+            </svg>
+          </button>
 
-          {/* Edit button - only for author with HTML content */}
-          {isAuthor && hasHtmlContent && onEdit && !isGenerating && !isFailed && (
-            <Button size="s" mode="bezeled" onClick={() => onEdit(post.id)}>
-              Edit{post.project?.edit_count ? ` (${post.project.edit_count})` : ''}
-            </Button>
+          {/* Share button - moves to right if NOT author or no controls */}
+          {(!isAuthor || isGenerating || isFailed) && (
+            <button
+              onClick={async () => {
+                const shareUrl = `${window.location.origin}/preview?postId=${post.id}`;
+                const shareText = `Check out this project: ${post.prompt}`;
+
+                try {
+                  // Try Telegram share first
+                  if (window.Telegram?.WebApp?.openTelegramLink) {
+                    const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
+                    window.Telegram.WebApp.openTelegramLink(tgShareUrl);
+                  } else if (navigator.share) {
+                    // Fallback to Web Share API
+                    await navigator.share({
+                      title: post.title,
+                      text: shareText,
+                      url: shareUrl,
+                    });
+                  } else {
+                    // Fallback: copy to clipboard
+                    await navigator.clipboard.writeText(shareUrl);
+                    alert('Link copied to clipboard!');
+                  }
+                } catch (err) {
+                  console.error('Error sharing:', err);
+                }
+              }}
+              disabled={isGenerating || isFailed}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                cursor: isGenerating || isFailed ? 'default' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                fontSize: '24px',
+                opacity: isGenerating || isFailed ? 0.5 : 1,
+                transition: 'transform 0.1s ease',
+                marginLeft: 'auto',
+              }}
+              onMouseDown={(e) => {
+                e.currentTarget.style.transform = 'scale(0.9)';
+              }}
+              onMouseUp={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+            >
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="var(--tg-theme-text-color)"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M22 2L11 13" />
+                <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+              </svg>
+            </button>
           )}
+
+          {/* Author controls on the right */}
+          <div style={{ marginLeft: isAuthor && !isGenerating && !isFailed ? 'auto' : '0', display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {/* Edit button - only for author with HTML content */}
+            {isAuthor && hasHtmlContent && onEdit && !isGenerating && !isFailed && (
+              <Button size="s" mode="plain" onClick={() => onEdit(post.id)} style={{ fontSize: '13px', padding: '4px 8px' }}>
+                Edit{post.project?.edit_count ? ` (${post.project.edit_count})` : ''}
+              </Button>
+            )}
+
+            {/* Publish button for unpublished posts by author */}
+            {isAuthor && !isPublished && onPublish && !isGenerating && !isFailed && (
+              <Button
+                size="s"
+                mode="filled"
+                onClick={() => onPublish(post.id, true)}
+                disabled={publishingId === post.id}
+                loading={publishingId === post.id}
+                style={{
+                  backgroundColor: '#10b981',
+                  color: '#ffffff',
+                  fontSize: '13px',
+                  padding: '4px 12px',
+                }}
+              >
+                ✨ Publish
+              </Button>
+            )}
+
+            {/* Unpublish button for published posts by author */}
+            {isAuthor && isPublished && onPublish && !isGenerating && !isFailed && (
+              <Button
+                size="s"
+                mode="plain"
+                onClick={() => onPublish(post.id, false)}
+                disabled={publishingId === post.id}
+                loading={publishingId === post.id}
+                style={{ fontSize: '13px', padding: '4px 8px' }}
+              >
+                Unpublish
+              </Button>
+            )}
+          </div>
         </div>
+
+        {/* Likes count */}
+        {post.likes_count > 0 && (
+          <Text weight="2" style={{ fontSize: '14px', marginBottom: '8px', display: 'block' }}>
+            {post.likes_count} {post.likes_count === 1 ? 'like' : 'likes'}
+          </Text>
+        )}
+
+        {/* Post caption */}
+        <Text style={{ color: 'var(--tg-theme-text-color)', fontSize: '14px' }}>
+          {post.prompt}
+        </Text>
       </div>
     </div>
   );

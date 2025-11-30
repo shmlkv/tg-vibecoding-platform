@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Page } from '@/components/Page';
 import { useIframeDebug, type DebugMessage } from '@/hooks/useIframeDebug';
 import { wrapHtmlWithErrorCapture } from '@/lib/iframe-debug';
+import { wrapHtmlWithMute } from '@/lib/iframe-mute';
 
 type PostData = {
   id: string;
@@ -54,7 +55,9 @@ export default function EditPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'errors' | 'console'>('errors');
+  const [activeTab, setActiveTab] = useState<'errors' | 'console' | 'chat'>('chat');
+  const [chatInput, setChatInput] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
 
   // Load post data
   const loadPost = useCallback(async () => {
@@ -125,6 +128,47 @@ export default function EditPage() {
     }
   };
 
+  // Edit with AI chat
+  const handleEditWithAI = async () => {
+    if (!chatInput.trim() || !htmlContent || !postId || !viewer) return;
+
+    setIsEditing(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/posts/${postId}/edit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          editPrompt: chatInput.trim(),
+          user: {
+            id: viewer.id,
+            username: viewer.username,
+            first_name: viewer.first_name,
+          },
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to edit');
+      }
+
+      setHtmlContent(data.html_content);
+      setChatInput('');
+      setSuccessMessage('Updated successfully!');
+      setTimeout(() => setSuccessMessage(null), 3000);
+
+      // Reload post to get updated edit_count
+      void loadPost();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to edit');
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
   // Save changes
   const handleSave = async () => {
     if (!postId || !htmlContent || !viewer) return;
@@ -160,7 +204,9 @@ export default function EditPage() {
   // Wrapped HTML for preview
   const wrappedHtml = useMemo(() => {
     if (!htmlContent) return '';
-    return wrapHtmlWithErrorCapture(htmlContent);
+    // First wrap with mute script, then with error capture
+    const mutedHtml = wrapHtmlWithMute(htmlContent);
+    return wrapHtmlWithErrorCapture(mutedHtml);
   }, [htmlContent]);
 
   if (isLoading) {
@@ -324,6 +370,21 @@ export default function EditPage() {
             }}
           >
             <button
+              onClick={() => setActiveTab('chat')}
+              style={{
+                flex: 1,
+                padding: '8px',
+                border: 'none',
+                background: activeTab === 'chat' ? 'var(--tg-theme-bg-color)' : 'transparent',
+                color: activeTab === 'chat' ? '#3b82f6' : 'var(--tg-theme-text-color)',
+                fontWeight: activeTab === 'chat' ? '600' : '400',
+                cursor: 'pointer',
+                fontSize: '14px',
+              }}
+            >
+              💬 Edit
+            </button>
+            <button
               onClick={() => setActiveTab('errors')}
               style={{
                 flex: 1,
@@ -361,11 +422,49 @@ export default function EditPage() {
               flex: 1,
               overflow: 'auto',
               padding: '8px',
-              fontFamily: 'monospace',
-              fontSize: '12px',
+              fontFamily: activeTab === 'chat' ? 'inherit' : 'monospace',
+              fontSize: activeTab === 'chat' ? '14px' : '12px',
             }}
           >
-            {activeTab === 'errors' ? (
+            {activeTab === 'chat' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', height: '100%' }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <textarea
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Tell me what to change... (e.g., 'make the background blue', 'add a button that says Hello')"
+                    disabled={isEditing}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                        e.preventDefault();
+                        void handleEditWithAI();
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      border: '1px solid var(--tg-theme-hint-color)',
+                      borderRadius: '8px',
+                      backgroundColor: 'var(--tg-theme-bg-color)',
+                      color: 'var(--tg-theme-text-color)',
+                      fontSize: '14px',
+                      fontFamily: 'inherit',
+                      resize: 'none',
+                      outline: 'none',
+                    }}
+                  />
+                  <Button
+                    size="m"
+                    stretched
+                    onClick={handleEditWithAI}
+                    loading={isEditing}
+                    disabled={isEditing || !chatInput.trim()}
+                  >
+                    {isEditing ? 'Editing...' : 'Edit with AI'}
+                  </Button>
+                </div>
+              </div>
+            ) : activeTab === 'errors' ? (
               errors.length === 0 ? (
                 <div style={{ color: '#10b981', padding: '8px' }}>No errors</div>
               ) : (
