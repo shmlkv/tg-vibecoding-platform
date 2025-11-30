@@ -300,40 +300,81 @@ export default function ProfilePage() {
           overflowX: 'hidden',
         }}
       >
-        <Section header="Profile">
-          <div style={{ padding: '12px', display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <Avatar size={48} src={profile?.photo_url || undefined} acronym={name.slice(0, 2)} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
-              <Text weight="2" style={{ fontSize: '18px' }}>
-                {name}
-              </Text>
-              <Text style={{ color: 'var(--tg-theme-hint-color)' }}>
-                {stats.totalPosts} generated
-              </Text>
-              {stats.joinedAt && (
-                <Text style={{ color: 'var(--tg-theme-hint-color)' }}>
-                  Joined {new Date(stats.joinedAt).toLocaleDateString()}
+        {/* Profile Header */}
+        <div
+          style={{
+            padding: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          }}
+        >
+          {/* Top row: Avatar + Stats */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+            {/* Avatar */}
+            <Avatar
+              size={96}
+              src={profile?.photo_url || undefined}
+              acronym={name.slice(0, 2)}
+            />
+
+            {/* Stats */}
+            <div style={{ display: 'flex', flex: 1, justifyContent: 'space-around' }}>
+              <div style={{ textAlign: 'center' }}>
+                <Text weight="1" style={{ fontSize: '18px', display: 'block' }}>
+                  {posts.filter(p => p.is_published).length}
                 </Text>
-              )}
+                <Text style={{ fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
+                  posts
+                </Text>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <Text weight="1" style={{ fontSize: '18px', display: 'block' }}>
+                  {posts.reduce((sum, p) => sum + (p.likes_count || 0), 0)}
+                </Text>
+                <Text style={{ fontSize: '13px', color: 'var(--tg-theme-hint-color)' }}>
+                  likes
+                </Text>
+              </div>
             </div>
-            <button
-              onClick={() => router.push('/settings')}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '8px',
-                border: '1px solid var(--tg-theme-hint-color)',
-                backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-                color: 'var(--tg-theme-text-color)',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-              }}
-            >
-              Settings
-            </button>
           </div>
-        </Section>
+
+          {/* Name + Bio */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <Text weight="2" style={{ fontSize: '16px' }}>
+              {name}
+            </Text>
+            {profile?.username && (
+              <Text style={{ fontSize: '14px', color: 'var(--tg-theme-hint-color)' }}>
+                @{profile.username}
+              </Text>
+            )}
+            {stats.joinedAt && (
+              <Text style={{ fontSize: '13px', color: 'var(--tg-theme-hint-color)', marginTop: '4px' }}>
+                Joined {new Date(stats.joinedAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </Text>
+            )}
+          </div>
+
+          {/* Action button */}
+          <button
+            onClick={() => router.push('/settings')}
+            style={{
+              width: '100%',
+              padding: '8px 16px',
+              borderRadius: '10px',
+              border: 'none',
+              backgroundColor: 'var(--tg-theme-button-color, #3390ec)',
+              color: 'var(--tg-theme-button-text-color, #fff)',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '600',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+            }}
+          >
+            Settings
+          </button>
+        </div>
 
         {error && (
           <div
