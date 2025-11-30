@@ -54,7 +54,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Post not found' }, { status: 404 });
     }
 
-    if (post.user_id !== parseInt(userId)) {
+    if (String(post.user_id) !== String(userId)) {
       return NextResponse.json(
         { error: 'You can only delete your own posts' },
         { status: 403 }
@@ -113,7 +113,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Post not found' }, { status: 404 });
     }
 
-    if (post.user_id !== parseInt(userId)) {
+    if (String(post.user_id) !== String(userId)) {
       return NextResponse.json(
         { error: 'You can only modify your own posts' },
         { status: 403 }

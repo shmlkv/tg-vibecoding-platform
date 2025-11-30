@@ -30,10 +30,10 @@ type PostInsertInput = {
   title: string;
   prompt: string;
   userId?: string | null;
-  v0ProjectId: string;
+  v0ProjectId?: string | null;
   v0ProjectWebUrl?: string | null;
-  v0ChatId: string;
-  v0DemoUrl: string;
+  v0ChatId?: string | null;
+  v0DemoUrl?: string | null;
   status?: Database['public']['Tables']['posts']['Insert']['status'];
   generationError?: string | null;
   modelId?: string | null;

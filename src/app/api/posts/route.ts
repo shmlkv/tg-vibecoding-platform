@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     const { data: settings } = await supabase
       .from('user_settings')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', parseInt(userId, 10))
       .maybeSingle();
 
     // Use requested model from form, or fall back to user's default, or use free model

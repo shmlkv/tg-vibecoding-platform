@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const { data: settings, error } = await supabase
       .from('user_settings')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', parseInt(userId, 10))
       .maybeSingle();
 
     if (error && error.code !== 'PGRST116') {

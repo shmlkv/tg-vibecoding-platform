@@ -290,11 +290,12 @@ export default function ProfilePage() {
           flexDirection: 'column',
           gap: '12px',
           paddingBottom: 'calc(258px + env(safe-area-inset-bottom, 0px))',
+          overflowX: 'hidden',
         }}
       >
         <Section header="Profile">
           <div style={{ padding: '12px', display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <Avatar size={64} src={profile?.photo_url || undefined} acronym={name.slice(0, 2)} />
+            <Avatar size={48} src={profile?.photo_url || undefined} acronym={name.slice(0, 2)} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
               <Text weight="2" style={{ fontSize: '18px' }}>
                 {name}

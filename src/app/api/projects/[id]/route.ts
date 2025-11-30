@@ -19,7 +19,7 @@ export async function GET(
     const { data: project, error } = await supabase
       .from('projects')
       .select('*')
-      .eq('id', projectId)
+      .eq('id', parseInt(projectId, 10))
       .single();
 
     if (error) {

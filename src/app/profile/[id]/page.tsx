@@ -256,7 +256,7 @@ export default function UserProfilePage() {
       >
         <Section header="Profile">
           <div style={{ padding: '12px', display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <Avatar size={64} src={profile?.photo_url || undefined} acronym={name.slice(0, 2)} />
+            <Avatar size={48} src={profile?.photo_url || undefined} acronym={name.slice(0, 2)} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <Text weight="2" style={{ fontSize: '18px' }}>
                 {name}

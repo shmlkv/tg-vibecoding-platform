@@ -111,11 +111,11 @@ export default function GeneratePage() {
     <Page>
       <div
         style={{
-          // padding: '16px',
           display: 'flex',
           flexDirection: 'column',
           gap: '16px',
           paddingBottom: 'calc(96px + env(safe-area-inset-bottom, 0px))',
+          overflowX: 'hidden',
         }}
       >
         <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
