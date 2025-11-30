@@ -84,6 +84,24 @@ create trigger sync_likes_count_delete
 after delete on public.post_likes
 for each row execute procedure public.sync_likes_count();
 
+-- Projects table with HTML content
+create table if not exists public.projects (
+  id bigserial primary key,
+  title text not null,
+  description text,
+  html_content text not null,
+  user_id bigint references public.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- Keep updated_at in sync for projects
+drop trigger if exists set_updated_at_projects on public.projects;
+create trigger set_updated_at_projects
+before update on public.projects
+for each row execute procedure public.set_updated_at();
+
 -- Helpful indexes
 create index if not exists idx_posts_user_created_at on public.posts (user_id, created_at desc);
 create index if not exists idx_post_likes_user on public.post_likes (user_id);
+create index if not exists idx_projects_user_created_at on public.projects (user_id, created_at desc);

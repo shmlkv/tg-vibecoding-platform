@@ -9,11 +9,16 @@ import { Page } from '@/components/Page';
 type PostResponse = {
   post: {
     id: string;
-    v0_demo_url: string;
+    v0_demo_url: string | null;
     title: string;
     prompt: string;
     status?: 'pending' | 'ready' | 'failed';
     generation_error?: string | null;
+    project?: {
+      id: number;
+      title: string;
+      html_content: string;
+    } | null;
   };
 };
 
@@ -22,6 +27,7 @@ export default function PreviewPage() {
   const postId = searchParams.get('postId');
   const directUrl = searchParams.get('url');
   const [url, setUrl] = useState<string | null>(directUrl);
+  const [htmlContent, setHtmlContent] = useState<string | null>(null);
   const [status, setStatus] = useState<'pending' | 'ready' | 'failed' | null>(
     directUrl ? 'ready' : null
   );
@@ -48,7 +54,15 @@ export default function PreviewPage() {
       if (!response.ok) {
         throw new Error((data as unknown as { error?: string }).error || 'Не удалось загрузить');
       }
-      setUrl(data.post.v0_demo_url);
+      // Prefer project HTML content over v0_demo_url
+      if (data.post.project?.html_content) {
+        setHtmlContent(data.post.project.html_content);
+        setUrl(null);
+      } else if (data.post.v0_demo_url) {
+        setUrl(data.post.v0_demo_url);
+        setHtmlContent(null);
+      }
+
       setStatus(data.post.status ?? 'ready');
       if (data.post.status === 'failed' && data.post.generation_error) {
         setError(data.post.generation_error);
@@ -77,7 +91,7 @@ export default function PreviewPage() {
     return () => clearInterval(interval);
   }, [status, postId, fetchPost]);
 
-  if (!url && !isLoading && status !== 'pending') {
+  if (!url && !htmlContent && !isLoading && status !== 'pending') {
     return (
       <Page>
         <div
@@ -120,7 +134,7 @@ export default function PreviewPage() {
             <Spinner size="l" />
 
             {status === 'pending' && (
-              <Text style={{ color: 'var(--tg-theme-hint-color)', textAlign: 'center' }}>
+              <Text style={{ minWidth: '160px', padding: '12px', color: 'var(--tg-theme-hint-color)', textAlign: 'center' }}>
                 We saved your post. The live demo appears automatically once ready.
               </Text>
             )}
@@ -151,7 +165,21 @@ export default function PreviewPage() {
             </Text>
           </div>
         )}
-        {url && status !== 'pending' && (
+        {htmlContent && status !== 'pending' && (
+          <iframe
+            srcDoc={htmlContent}
+            onLoad={() => setIsLoading(false)}
+            style={{
+              width: '100%',
+              height: '100%',
+              border: 'none',
+              display: isLoading ? 'none' : 'block',
+            }}
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+            title="Generated Project Preview"
+          />
+        )}
+        {url && !htmlContent && status !== 'pending' && (
           <iframe
             src={url}
             onLoad={() => setIsLoading(false)}
@@ -162,6 +190,7 @@ export default function PreviewPage() {
               display: isLoading ? 'none' : 'block',
             }}
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+            title="External Project Preview"
           />
         )}
       </div>

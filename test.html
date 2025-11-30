@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Rotating Cube</title>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            overflow: hidden;
+            touch-action: none;
+            background: #000;
+        }
+        canvas {
+            width: 100vw;
+            height: 100vh;
+            touch-action: none;
+        }
+        .instructions {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 5px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="instructions">Touch and drag to rotate</div>
+    <script>
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Create cube
+        const geometry = new THREE.BoxGeometry(2, 2, 2);
+        const materials = [
+            new THREE.MeshBasicMaterial({ color: 0xff0000 }), // right
+            new THREE.MeshBasicMaterial({ color: 0x00ff00 }), // left
+            new THREE.MeshBasicMaterial({ color: 0x0000ff }), // top
+            new THREE.MeshBasicMaterial({ color: 0xffff00 }), // bottom
+            new THREE.MeshBasicMaterial({ color: 0xff00ff }), // front
+            new THREE.MeshBasicMaterial({ color: 0x00ffff }), // back
+        ];
+        const cube = new THREE.Mesh(geometry, materials);
+        scene.add(cube);
+
+        camera.position.z = 5;
+
+        // Rotation handling
+        let isDragging = false;
+        let previousTouch = { x: 0, y: 0 };
+        let rotationSpeed = { x: 0, y: 0 };
+
+        // Touch events
+        document.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            previousTouch.x = e.touches[0].clientX;
+            previousTouch.y = e.touches[0].clientY;
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+
+            const deltaX = e.touches[0].clientX - previousTouch.x;
+            const deltaY = e.touches[0].clientY - previousTouch.y;
+
+            rotationSpeed.x = deltaY * 0.005;
+            rotationSpeed.y = deltaX * 0.005;
+
+            previousTouch.x = e.touches[0].clientX;
+            previousTouch.y = e.touches[0].clientY;
+        });
+
+        document.addEventListener('touchend', () => {
+            isDragging = false;
+            rotationSpeed.x *= 0.95;
+            rotationSpeed.y *= 0.95;
+        });
+
+        // Mouse events
+        document.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            previousTouch.x = e.clientX;
+            previousTouch.y = e.clientY;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+
+            const deltaX = e.clientX - previousTouch.x;
+            const deltaY = e.clientY - previousTouch.y;
+
+            rotationSpeed.x = deltaY * 0.005;
+            rotationSpeed.y = deltaX * 0.005;
+
+            previousTouch.x = e.clientX;
+            previousTouch.y = e.clientY;
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (!isDragging) {
+                rotationSpeed.x *= 0.95;
+                rotationSpeed.y *= 0.95;
+            }
+
+            cube.rotation.x += rotationSpeed.x;
+            cube.rotation.y += rotationSpeed.y;
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>

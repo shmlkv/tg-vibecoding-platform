@@ -4,9 +4,9 @@ import { toggleLike, upsertTelegramUser } from '@/lib/posts';
 
 export async function POST(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { params } = context;
+  const { id } = await context.params;
 
   try {
     const { user } = await request.json();
@@ -19,7 +19,7 @@ export async function POST(
     }
 
     const userId = await upsertTelegramUser(user);
-    const result = await toggleLike({ postId: params.id, userId });
+    const result = await toggleLike({ postId: id, userId });
 
     return NextResponse.json(result);
   } catch (error) {

@@ -16,6 +16,14 @@ export type PostWithAuthor = Database['public']['Tables']['posts']['Row'] & {
     'id' | 'username' | 'first_name' | 'last_name' | 'photo_url' | 'created_at'
   > | null;
   liked?: boolean;
+  project?: Pick<
+    Database['public']['Tables']['projects']['Row'],
+    'id' | 'title' | 'html_content'
+  > | null;
+  model?: Pick<
+    Database['public']['Tables']['models']['Row'],
+    'id' | 'name' | 'provider' | 'avatar_url' | 'is_free'
+  > | null;
 };
 
 type PostInsertInput = {
@@ -28,6 +36,7 @@ type PostInsertInput = {
   v0DemoUrl: string;
   status?: Database['public']['Tables']['posts']['Insert']['status'];
   generationError?: string | null;
+  modelId?: string | null;
 };
 
 export async function upsertTelegramUser(user: TelegramUserPayload) {
@@ -70,6 +79,8 @@ export async function insertPost(input: PostInsertInput): Promise<PostWithAuthor
       v0_demo_url: input.v0DemoUrl,
       status: input.status ?? 'ready',
       generation_error: input.generationError ?? null,
+      is_published: false, // Posts are unpublished by default
+      model_id: input.modelId ?? null,
     })
     .select(
       `
@@ -86,6 +97,8 @@ export async function insertPost(input: PostInsertInput): Promise<PostWithAuthor
       v0_project_web_url,
       v0_chat_id,
       v0_demo_url,
+      is_published,
+      model_id,
       user:users!posts_user_id_fkey (
         id,
         username,
@@ -93,6 +106,13 @@ export async function insertPost(input: PostInsertInput): Promise<PostWithAuthor
         last_name,
         photo_url,
         created_at
+      ),
+      model:models!posts_model_id_fkey (
+        id,
+        name,
+        provider,
+        avatar_url,
+        is_free
       )
     `
     )
@@ -109,10 +129,14 @@ export async function getPosts({
   limit = 20,
   viewerId,
   authorId,
+  modelId,
+  includeUnpublished = false,
 }: {
   limit?: number;
   viewerId?: string;
   authorId?: string;
+  modelId?: string;
+  includeUnpublished?: boolean;
 }): Promise<PostWithAuthor[]> {
   const supabase = getSupabaseClient();
 
@@ -133,6 +157,9 @@ export async function getPosts({
         v0_project_web_url,
         v0_chat_id,
         v0_demo_url,
+        project_id,
+        is_published,
+        model_id,
         user:users!posts_user_id_fkey (
           id,
           username,
@@ -140,13 +167,35 @@ export async function getPosts({
           last_name,
           photo_url,
           created_at
+        ),
+        project:projects!posts_project_id_fkey (
+          id,
+          title,
+          html_content,
+          edit_count
+        ),
+        model:models!posts_model_id_fkey (
+          id,
+          name,
+          provider,
+          avatar_url,
+          is_free
         )
       `
     )
     .order('created_at', { ascending: false });
 
+  // Only show published posts unless includeUnpublished is true (for viewing own posts)
+  if (!includeUnpublished) {
+    query = query.eq('is_published', true);
+  }
+
   if (authorId) {
     query = query.eq('user_id', authorId);
+  }
+
+  if (modelId) {
+    query = query.eq('model_id', modelId);
   }
 
   query = query.limit(limit);
@@ -199,6 +248,9 @@ export async function getPostById({
       v0_project_web_url,
       v0_chat_id,
       v0_demo_url,
+      project_id,
+      is_published,
+      model_id,
       user:users!posts_user_id_fkey (
         id,
         username,
@@ -206,6 +258,19 @@ export async function getPostById({
         last_name,
         photo_url,
         created_at
+      ),
+      project:projects!posts_project_id_fkey (
+        id,
+        title,
+        html_content,
+        edit_count
+      ),
+      model:models!posts_model_id_fkey (
+        id,
+        name,
+        provider,
+        avatar_url,
+        is_free
       )
     `
     )

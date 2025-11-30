@@ -3,10 +3,11 @@
 import { initData, useSignal } from '@telegram-apps/sdk-react';
 import { Button, Text } from '@telegram-apps/telegram-ui';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Page } from '@/components/Page';
 import { TabNavigation } from '@/components/TabNavigation';
+import { AVAILABLE_MODELS } from '@/lib/openrouter';
 
 type Viewer = {
   id: string;
@@ -37,8 +38,39 @@ export default function GeneratePage() {
 
   const [prompt, setPrompt] = useState('');
   const [title, setTitle] = useState('');
+  const [selectedModel, setSelectedModel] = useState('x-ai/grok-4.1-fast:free');
+  const [hasApiKey, setHasApiKey] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Load user's API key status from settings
+  const loadSettings = useCallback(async () => {
+    if (!viewer?.id) {
+      setIsLoadingSettings(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/settings?userId=${encodeURIComponent(viewer.id)}`);
+      const data = await response.json();
+
+      if (response.ok && data.settings) {
+        setHasApiKey(Boolean(data.settings.openrouter_api_key));
+      }
+    } catch {
+      // Ignore errors, use default
+    } finally {
+      setIsLoadingSettings(false);
+    }
+  }, [viewer?.id]);
+
+  useEffect(() => {
+    void loadSettings();
+  }, [loadSettings]);
+
+  const isFreeModel = selectedModel === 'x-ai/grok-4.1-fast:free';
+  const needsApiKey = !isFreeModel && !hasApiKey;
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -54,6 +86,7 @@ export default function GeneratePage() {
           prompt,
           title: title.trim() || undefined,
           user: viewer,
+          model: selectedModel,
         }),
       });
 
@@ -63,13 +96,16 @@ export default function GeneratePage() {
         throw new Error(data.error || 'Failed to generate');
       }
 
-      router.push(`/preview?postId=${encodeURIComponent(data.post.id)}`);
+      // Redirect to profile to see the new post with auto-refresh
+      router.push('/profile');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setIsLoading(false);
     }
   };
+
+  const currentModelConfig = AVAILABLE_MODELS.find((m) => m.id === selectedModel);
 
   return (
     <Page>
@@ -83,13 +119,10 @@ export default function GeneratePage() {
         }}
       >
         <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <Text style={{ marginBottom: '4px', display: 'block', fontFamily: 'monospace' }}>
-            Describe what you want to build
-          </Text>
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="american biliard pool 2d game with physics"
+            placeholder="Describe an idea..."
             disabled={isLoading}
             style={{
               maxWidth: '100%',
@@ -102,13 +135,76 @@ export default function GeneratePage() {
               fontSize: '16px',
               resize: 'vertical',
               fontFamily: 'monospace',
-              // font of placeholde
             }}
           />
-          {/* <Text style={{ color: 'var(--tg-theme-hint-color)' }}>
-              We create a v0 project via Platform API, save it in Supabase, and embed the live demo
-              into the feed.
-            </Text> */}
+
+          {/* Model selector */}
+          <div>
+            <Text
+              style={{
+                display: 'block',
+                marginBottom: '6px',
+                fontSize: '13px',
+                color: 'var(--tg-theme-hint-color)',
+              }}
+            >
+              AI Model
+            </Text>
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              disabled={isLoading || isLoadingSettings}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: '10px',
+                border: '1px solid var(--tg-theme-hint-color, #ccc)',
+                backgroundColor: 'var(--tg-theme-secondary-bg-color, #f5f5f5)',
+                color: 'var(--tg-theme-text-color, #000)',
+                fontSize: '14px',
+              }}
+            >
+              {AVAILABLE_MODELS.map((model) => (
+                <option key={model.id} value={model.id}>
+                  {model.supportsReasoning ? '🧠 ' : ''}{model.name}
+                </option>
+              ))}
+            </select>
+            {currentModelConfig && (
+              <Text
+                style={{
+                  display: 'block',
+                  marginTop: '4px',
+                  fontSize: '12px',
+                  color: currentModelConfig.supportsReasoning ? '#065f46' : 'var(--tg-theme-hint-color)',
+                }}
+              >
+                {currentModelConfig.supportsReasoning && '🧠 '}{currentModelConfig.description}
+              </Text>
+            )}
+          </div>
+
+          {/* Warning if API key needed */}
+          {needsApiKey && (
+            <div
+              style={{
+                padding: '10px 12px',
+                backgroundColor: '#fef3c7',
+                borderRadius: '10px',
+                border: '1px solid #fcd34d',
+              }}
+            >
+              <Text style={{ fontSize: '13px', color: '#92400e' }}>
+                This model requires an API key.{' '}
+                <span
+                  onClick={() => router.push('/settings')}
+                  style={{ textDecoration: 'underline', cursor: 'pointer' }}
+                >
+                  Configure in Settings
+                </span>
+              </Text>
+            </div>
+          )}
         </div>
 
         {error && (
@@ -129,17 +225,12 @@ export default function GeneratePage() {
             size="l"
             stretched
             onClick={handleGenerate}
-            disabled={isLoading || !prompt.trim()}
+            disabled={isLoading || !prompt.trim() || needsApiKey}
             loading={isLoading}
           >
-            {isLoading ? 'Generating and saving…' : '✨ Generate'}
+            {isLoading ? 'Generating…' : `✨ Generate with ${currentModelConfig?.name.split(': ')[1] || 'AI'}`}
           </Button>
 
-          {isLoading && (
-            <Text style={{ textAlign: 'center', color: 'var(--tg-theme-hint-color)' }}>
-              AI is building your interface. This usually takes under a minute.
-            </Text>
-          )}
         </div>
       </div>
       <TabNavigation />

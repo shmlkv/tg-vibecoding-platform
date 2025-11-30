@@ -39,6 +39,8 @@ export default function UserProfilePage() {
   const [stats, setStats] = useState<ProfileStats>({ totalPosts: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [likingId, setLikingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [publishingId, setPublishingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadProfile = useCallback(async () => {
@@ -87,6 +89,34 @@ export default function UserProfilePage() {
     }
   }, [profileId, viewer?.id]);
 
+  // Refresh only pending posts without reloading the entire profile
+  const refreshPendingPosts = useCallback(async () => {
+    const pendingPosts = posts.filter((post) => post.status === 'pending');
+    if (pendingPosts.length === 0) return;
+
+    try {
+      const updates = await Promise.all(
+        pendingPosts.map(async (post) => {
+          const response = await fetch(
+            `/api/posts/${post.id}${viewer?.id ? `?userId=${encodeURIComponent(viewer.id)}` : ''}`
+          );
+          if (!response.ok) return null;
+          const data = await response.json();
+          return data.post as PostCardData;
+        })
+      );
+
+      setPosts((prev) =>
+        prev.map((post) => {
+          const updated = updates.find((u) => u?.id === post.id);
+          return updated || post;
+        })
+      );
+    } catch {
+      // Silently fail - will retry on next interval
+    }
+  }, [posts, viewer?.id]);
+
   useEffect(() => {
     void loadProfile();
   }, [loadProfile]);
@@ -97,11 +127,11 @@ export default function UserProfilePage() {
     }
 
     const interval = setInterval(() => {
-      void loadProfile();
-    }, 5000);
+      void refreshPendingPosts();
+    }, 3000);
 
     return () => clearInterval(interval);
-  }, [posts, loadProfile]);
+  }, [posts, refreshPendingPosts]);
 
   const handleLike = async (postId: string) => {
     if (!viewer) {
@@ -139,9 +169,71 @@ export default function UserProfilePage() {
     router.push(`/preview?postId=${postId}`);
   };
 
+  const handleEdit = (postId: string) => {
+    router.push(`/edit?postId=${postId}`);
+  };
+
   const handleOpenAuthor = (userId: string) => {
     if (userId !== profileId) {
       router.push(`/profile/${userId}`);
+    }
+  };
+
+  const handleOpenModel = (modelId: string) => {
+    router.push(`/models/${encodeURIComponent(modelId)}`);
+  };
+
+  const handleDelete = async (postId: string) => {
+    if (!viewer) return;
+
+    setDeletingId(postId);
+    try {
+      const response = await fetch(
+        `/api/posts/${postId}?userId=${encodeURIComponent(viewer.id)}`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to delete post');
+      }
+
+      // Remove from local state
+      setPosts((prev) => prev.filter((post) => post.id !== postId));
+      setStats((prev) => ({ ...prev, totalPosts: prev.totalPosts - 1 }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete post');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handlePublish = async (postId: string, isPublished: boolean) => {
+    if (!viewer) return;
+
+    setPublishingId(postId);
+    try {
+      const response = await fetch(`/api/posts/${postId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: viewer.id, is_published: isPublished }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update post');
+      }
+
+      // Update local state
+      setPosts((prev) =>
+        prev.map((post) => (post.id === postId ? { ...post, is_published: isPublished } : post))
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update post');
+    } finally {
+      setPublishingId(null);
     }
   };
 
@@ -220,11 +312,18 @@ export default function UserProfilePage() {
             <PostCard
               key={post.id}
               post={post}
+              viewerId={viewer?.id}
               viewerCanLike={Boolean(viewer)}
               onLike={handleLike}
               likingId={likingId}
               onOpen={handleOpen}
+              onEdit={handleEdit}
               onOpenAuthor={handleOpenAuthor}
+              onOpenModel={handleOpenModel}
+              onDelete={handleDelete}
+              onPublish={handlePublish}
+              deletingId={deletingId}
+              publishingId={publishingId}
             />
           ))
         )}

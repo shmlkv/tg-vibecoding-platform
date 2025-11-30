@@ -2,20 +2,33 @@
 
 import { initData, useSignal } from '@telegram-apps/sdk-react';
 import { Avatar, Section, Spinner, Text } from '@telegram-apps/telegram-ui';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Page } from '@/components/Page';
 import { PostCard, type PostCardData, type UserSummary } from '@/components/PostCard';
 import { TabNavigation } from '@/components/TabNavigation';
 
-type ProfileStats = {
-  totalPosts: number;
-  joinedAt?: string;
+type ModelInfo = {
+  id: string;
+  name: string;
+  provider: string;
+  description: string | null;
+  avatar_url: string | null;
+  is_free: boolean;
+  posts_count: number;
+  created_at: string;
 };
 
-export default function ProfilePage() {
+export default function ModelProfilePage() {
   const router = useRouter();
+  const params = useParams<{ id: string }>();
+  const modelId = Array.isArray(params?.id)
+    ? decodeURIComponent(params.id[0])
+    : params?.id
+      ? decodeURIComponent(params.id)
+      : null;
+
   const tgUser = useSignal(initData.user);
   const viewer = useMemo<UserSummary | null>(
     () =>
@@ -32,63 +45,66 @@ export default function ProfilePage() {
   );
 
   const [posts, setPosts] = useState<PostCardData[]>([]);
-  const [profile, setProfile] = useState<UserSummary | null>(null);
-  const [stats, setStats] = useState<ProfileStats>({ totalPosts: 0 });
+  const [model, setModel] = useState<ModelInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [likingId, setLikingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [publishingId, setPublishingId] = useState<string | null>(null);
-  const [retryingId, setRetryingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const loadProfile = useCallback(async () => {
-    if (!viewer?.id) {
+  const loadModelProfile = useCallback(async () => {
+    if (!modelId) {
+      setError('Model not found');
       setIsLoading(false);
-      setError('Open inside Telegram to see your profile and posts.');
       return;
     }
 
     setIsLoading(true);
     setError(null);
+
     try {
-      const [userRes, postsRes] = await Promise.all([
-        fetch(`/api/users/${viewer.id}`),
-        fetch(`/api/posts?userId=${encodeURIComponent(viewer.id)}&authorId=${encodeURIComponent(viewer.id)}`),
+      const encodedModelId = encodeURIComponent(modelId);
+      const query = new URLSearchParams();
+      if (viewer?.id) {
+        query.set('userId', viewer.id);
+      }
+      query.set('modelId', modelId);
+
+      const [modelRes, postsRes] = await Promise.all([
+        fetch(`/api/models/${encodedModelId}`),
+        fetch(`/api/posts?${query.toString()}`),
       ]);
 
-      const userData = await userRes.json();
+      const modelData = await modelRes.json();
       const postsData = await postsRes.json();
 
-      if (!userRes.ok) {
-        throw new Error(userData.error || 'Failed to load user profile');
-      }
-      if (!postsRes.ok) {
-        throw new Error(postsData.error || 'Failed to load user posts');
+      if (!modelRes.ok) {
+        throw new Error(modelData.error || 'Failed to load model profile');
       }
 
-      setProfile(userData.user as UserSummary);
+      if (!postsRes.ok) {
+        throw new Error(postsData.error || 'Failed to load model posts');
+      }
+
+      setModel(modelData.model as ModelInfo);
       setPosts(postsData.posts as PostCardData[]);
-      setStats({
-        totalPosts: (postsData.posts as PostCardData[]).length,
-        joinedAt: (userData.user as UserSummary)?.created_at,
-      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load profile');
+      setError(err instanceof Error ? err.message : 'Failed to load model profile');
     } finally {
       setIsLoading(false);
     }
-  }, [viewer?.id]);
+  }, [modelId, viewer?.id]);
 
-  // Refresh only pending posts without reloading the entire profile
+  // Refresh only pending posts without reloading the entire model profile
   const refreshPendingPosts = useCallback(async () => {
     const pendingPosts = posts.filter((post) => post.status === 'pending');
-    if (pendingPosts.length === 0 || !viewer?.id) return;
+    if (pendingPosts.length === 0) return;
 
     try {
       const updates = await Promise.all(
         pendingPosts.map(async (post) => {
           const response = await fetch(
-            `/api/posts/${post.id}?userId=${encodeURIComponent(viewer.id)}`
+            `/api/posts/${post.id}${viewer?.id ? `?userId=${encodeURIComponent(viewer.id)}` : ''}`
           );
           if (!response.ok) return null;
           const data = await response.json();
@@ -108,8 +124,8 @@ export default function ProfilePage() {
   }, [posts, viewer?.id]);
 
   useEffect(() => {
-    void loadProfile();
-  }, [loadProfile]);
+    void loadModelProfile();
+  }, [loadModelProfile]);
 
   useEffect(() => {
     if (!posts.some((post) => post.status === 'pending')) {
@@ -163,8 +179,15 @@ export default function ProfilePage() {
     router.push(`/edit?postId=${postId}`);
   };
 
-  const handleOpenModel = (modelId: string) => {
-    router.push(`/models/${encodeURIComponent(modelId)}`);
+  const handleOpenAuthor = (userId: string) => {
+    router.push(`/profile/${userId}`);
+  };
+
+  const handleOpenModel = (modelIdToOpen: string) => {
+    // Don't navigate if it's the same model
+    if (modelIdToOpen !== modelId) {
+      router.push(`/models/${encodeURIComponent(modelIdToOpen)}`);
+    }
   };
 
   const handleDelete = async (postId: string) => {
@@ -184,9 +207,7 @@ export default function ProfilePage() {
         throw new Error(data.error || 'Failed to delete post');
       }
 
-      // Remove from local state
       setPosts((prev) => prev.filter((post) => post.id !== postId));
-      setStats((prev) => ({ ...prev, totalPosts: prev.totalPosts - 1 }));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete post');
     } finally {
@@ -210,7 +231,6 @@ export default function ProfilePage() {
         throw new Error(data.error || 'Failed to update post');
       }
 
-      // Update local state
       setPosts((prev) =>
         prev.map((post) => (post.id === postId ? { ...post, is_published: isPublished } : post))
       );
@@ -221,108 +241,74 @@ export default function ProfilePage() {
     }
   };
 
-  const handleRetry = async (postId: string, prompt: string) => {
-    if (!viewer) return;
-
-    setRetryingId(postId);
-    try {
-      // Delete the failed post first
-      await fetch(`/api/posts/${postId}?userId=${encodeURIComponent(viewer.id)}`, {
-        method: 'DELETE',
-      });
-
-      // Create a new post with the same prompt
-      const response = await fetch('/api/posts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt,
-          user: viewer,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to retry generation');
-      }
-
-      // Reload posts to get the new pending post
-      await loadProfile();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to retry');
-    } finally {
-      setRetryingId(null);
-    }
+  // Provider emoji/icon
+  const getProviderEmoji = (provider: string) => {
+    const p = provider.toLowerCase();
+    if (p.includes('anthropic')) return '>�';
+    if (p.includes('openai')) return '>';
+    if (p.includes('x-ai') || p.includes('xai')) return '�';
+    if (p.includes('google')) return '=.';
+    return '>';
   };
-
-  const name = profile
-    ? [profile.first_name, profile.last_name].filter(Boolean).join(' ') ||
-    (profile.username ? `@${profile.username}` : 'Telegram user')
-    : 'Your profile';
-
-  if (isLoading) {
-    return (
-      <Page>
-        <div
-          style={{
-            minHeight: '100vh',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '12px',
-            padding: '16px',
-            paddingBottom: 'calc(96px + env(safe-area-inset-bottom, 0px))',
-          }}
-        >
-          <Spinner size="l" />
-        </div>
-        <TabNavigation />
-      </Page>
-    );
-  }
 
   return (
     <Page>
       <div
         style={{
+          padding: '16px',
           display: 'flex',
           flexDirection: 'column',
           gap: '12px',
           paddingBottom: 'calc(258px + env(safe-area-inset-bottom, 0px))',
         }}
       >
-        <Section header="Profile">
+        <Section header="AI Model">
           <div style={{ padding: '12px', display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <Avatar size={64} src={profile?.photo_url || undefined} acronym={name.slice(0, 2)} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
-              <Text weight="2" style={{ fontSize: '18px' }}>
-                {name}
-              </Text>
-              <Text style={{ color: 'var(--tg-theme-hint-color)' }}>
-                {stats.totalPosts} generated
-              </Text>
-              {stats.joinedAt && (
-                <Text style={{ color: 'var(--tg-theme-hint-color)' }}>
-                  Joined {new Date(stats.joinedAt).toLocaleDateString()}
-                </Text>
-              )}
-            </div>
-            <button
-              onClick={() => router.push('/settings')}
+            <div
               style={{
-                padding: '8px 16px',
-                borderRadius: '8px',
-                border: '1px solid var(--tg-theme-hint-color)',
-                backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-                color: 'var(--tg-theme-text-color)',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500',
+                width: 64,
+                height: 64,
+                borderRadius: '50%',
+                backgroundColor: model?.is_free ? '#d1fae5' : '#e0e7ff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '28px',
               }}
             >
-              Settings
-            </button>
+              {model ? getProviderEmoji(model.provider) : '>'}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <Text weight="2" style={{ fontSize: '18px' }}>
+                {model?.name || 'Loading...'}
+              </Text>
+              <Text style={{ color: 'var(--tg-theme-hint-color)' }}>
+                {model?.provider}
+                {model?.is_free && (
+                  <span
+                    style={{
+                      marginLeft: '8px',
+                      padding: '2px 6px',
+                      backgroundColor: '#d1fae5',
+                      color: '#065f46',
+                      borderRadius: '4px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    FREE
+                  </span>
+                )}
+              </Text>
+              {model?.description && (
+                <Text style={{ color: 'var(--tg-theme-hint-color)', fontSize: '13px' }}>
+                  {model.description}
+                </Text>
+              )}
+              <Text style={{ color: 'var(--tg-theme-hint-color)' }}>
+                {model?.posts_count || 0} posts generated
+              </Text>
+            </div>
           </div>
         </Section>
 
@@ -340,11 +326,23 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {posts.length === 0 ? (
+        {isLoading ? (
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: '24px',
+              gap: '12px',
+            }}
+          >
+            <Spinner size="l" />
+          </div>
+        ) : posts.length === 0 ? (
           <Section header="No posts yet">
             <div style={{ padding: '12px' }}>
               <Text style={{ color: 'var(--tg-theme-hint-color)' }}>
-                Your generated projects will appear here.
+                No posts have been generated with this model yet.
               </Text>
             </div>
           </Section>
@@ -359,13 +357,12 @@ export default function ProfilePage() {
               likingId={likingId}
               onOpen={handleOpen}
               onEdit={handleEdit}
+              onOpenAuthor={handleOpenAuthor}
               onOpenModel={handleOpenModel}
               onDelete={handleDelete}
               onPublish={handlePublish}
-              onRetry={handleRetry}
               deletingId={deletingId}
               publishingId={publishingId}
-              retryingId={retryingId}
             />
           ))
         )}
