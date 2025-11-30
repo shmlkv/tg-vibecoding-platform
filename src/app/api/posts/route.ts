@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
 
     // Use requested model from form, or fall back to user's default, or use free model
     const selectedModel = requestedModel || settings?.selected_model || 'x-ai/grok-4.1-fast:free';
-    const isFreeModel = selectedModel === 'x-ai/grok-4.1-fast:free';
+    const isFreeModel = selectedModel.includes(':free');
     const isFreeMode = process.env.FREE_MODE === 'true';
 
     // Use user's API key or fallback to env for free models or free mode
@@ -91,16 +91,18 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Only require user API key for non-free models when not in free mode
+      // Free models (:free suffix) can always use the env key
       if (!isFreeModel && !userApiKey) {
         return NextResponse.json(
-          { error: 'Please configure your OpenRouter API key in Settings or use the free xAI model' },
+          { error: 'Please configure your OpenRouter API key in Settings or use a free model' },
           { status: 400 }
         );
       }
     }
 
     // For free mode or free models, use env key; otherwise use user's key
-    const apiKeyToUse = isFreeMode ? envApiKey : (userApiKey || envApiKey);
+    // Free models always use env key to avoid requiring users to have their own key
+    const apiKeyToUse = (isFreeMode || isFreeModel) ? envApiKey : (userApiKey || envApiKey);
     if (!apiKeyToUse) {
       return NextResponse.json(
         { error: 'OpenRouter API key is not configured' },

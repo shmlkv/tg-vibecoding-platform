@@ -2,6 +2,7 @@
 
 import { initData, useSignal } from '@telegram-apps/sdk-react';
 import { Button, Input, Text } from '@telegram-apps/telegram-ui';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Page } from '@/components/Page';
@@ -15,6 +16,7 @@ type Viewer = {
 };
 
 export default function SettingsPage() {
+  const router = useRouter();
   const tgUser = useSignal(initData.user);
   const viewer = useMemo<Viewer | null>(
     () =>
@@ -91,7 +93,10 @@ export default function SettingsPage() {
 
       setSettings(data.settings);
       setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+      // Redirect to profile after successful save
+      setTimeout(() => {
+        router.push('/profile');
+      }, 500);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save settings');
     } finally {

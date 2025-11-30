@@ -39,7 +39,7 @@ export default function GeneratePage() {
 
   const [prompt, setPrompt] = useState('');
   const [title, setTitle] = useState('');
-  const [selectedModel, setSelectedModel] = useState('anthropic/claude-sonnet-4.5');
+  const [selectedModel, setSelectedModel] = useState('x-ai/grok-4.1-fast:free');
   const [hasApiKey, setHasApiKey] = useState(false);
   const [isFreeMode, setIsFreeMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);

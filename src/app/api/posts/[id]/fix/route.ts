@@ -69,7 +69,13 @@ export async function POST(
       .eq('user_id', userId)
       .maybeSingle();
 
-    const apiKey = settings?.openrouter_api_key || process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API;
+    const isFreeMode = process.env.FREE_MODE === 'true';
+    const envApiKey = process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API;
+    const modelId = post.model_id || 'x-ai/grok-4.1-fast:free';
+    const isFreeModel = modelId.includes(':free');
+
+    // In free mode or for free models, use env key; otherwise use user's key
+    const apiKey = (isFreeMode || isFreeModel) ? envApiKey : (settings?.openrouter_api_key || envApiKey);
     if (!apiKey) {
       return NextResponse.json({ error: 'API key not configured' }, { status: 400 });
     }
@@ -84,9 +90,6 @@ ${html}
 \`\`\`
 
 Please fix all the errors listed above and return the corrected HTML code.`;
-
-    // Use a fast model for fixes (errors should be quick to fix)
-    const modelId = post.model_id || 'x-ai/grok-4.1-fast:free';
 
     console.log(`[fix] Fixing errors for post ${postId} with model ${modelId}`);
     console.log(`[fix] Errors:\n${errors.substring(0, 500)}...`);

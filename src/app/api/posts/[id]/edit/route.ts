@@ -75,9 +75,11 @@ export async function POST(
 
     const isFreeMode = process.env.FREE_MODE === 'true';
     const envApiKey = process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API;
+    const modelId = post.model_id || 'x-ai/grok-4.1-fast:free';
+    const isFreeModel = modelId.includes(':free');
 
-    // In free mode, always use the shared env API key
-    const apiKey = isFreeMode ? envApiKey : (settings?.openrouter_api_key || envApiKey);
+    // In free mode or for free models, use env key; otherwise use user's key
+    const apiKey = (isFreeMode || isFreeModel) ? envApiKey : (settings?.openrouter_api_key || envApiKey);
     if (!apiKey) {
       return NextResponse.json({ error: 'API key not configured' }, { status: 400 });
     }
@@ -92,9 +94,6 @@ ${post.project.html_content}
 \`\`\`
 
 Please modify the HTML according to the user's request above.`;
-
-    // Generate new HTML using the same model or default
-    const modelId = post.model_id || 'x-ai/grok-4.1-fast:free';
 
     const newHtmlContent = await generateHTMLWithOpenRouter({
       prompt: fullPrompt,
