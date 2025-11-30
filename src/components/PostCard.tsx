@@ -333,7 +333,8 @@ export function PostCard({
           overflow: 'hidden',
           border: '1px solid var(--tg-theme-hint-color, #d1d5db)',
           backgroundColor: 'var(--tg-theme-secondary-bg-color, #f9fafb)',
-          minHeight: 280,
+          aspectRatio: '1',
+          width: '100%',
         }}
       >
         {isGenerating ? (
@@ -345,7 +346,7 @@ export function PostCard({
               justifyContent: 'center',
               gap: '8px',
               padding: '24px',
-              minHeight: 280,
+              height: '100%',
             }}
           >
             <Spinner size="l" />
@@ -367,7 +368,7 @@ export function PostCard({
                   justifyContent: 'center',
                   gap: '12px',
                   padding: '24px',
-                  minHeight: 280,
+                  height: '100%',
                   backgroundColor: '#fef2f2',
                 }}
               >
@@ -424,7 +425,10 @@ export function PostCard({
                 sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
                 style={{
                   width: '100%',
-                  height: 360,
+                  height: '100%',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
                   border: 'none',
                   display: 'block',
                   opacity: isFrameLoading ? 0 : 1,
@@ -440,7 +444,10 @@ export function PostCard({
                 sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
                 style={{
                   width: '100%',
-                  height: 360,
+                  height: '100%',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
                   border: 'none',
                   display: 'block',
                   opacity: isFrameLoading ? 0 : 1,

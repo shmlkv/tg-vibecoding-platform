@@ -170,7 +170,7 @@ export default function UserProfilePage() {
   };
 
   const handleEdit = (postId: string) => {
-    router.push(`/edit?postId=${postId}`);
+    router.push(`/edit/${postId}`);
   };
 
   const handleOpenAuthor = (userId: string) => {

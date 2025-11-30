@@ -146,7 +146,7 @@ export default function PostsPage() {
   };
 
   const handleEdit = (postId: string) => {
-    router.push(`/edit?postId=${postId}`);
+    router.push(`/edit/${postId}`);
   };
 
   const handleOpenAuthor = (userId: string) => {
@@ -216,11 +216,11 @@ export default function PostsPage() {
     <Page>
       <div
         style={{
-          // padding: '16px',
           display: 'flex',
           flexDirection: 'column',
           gap: '12px',
           paddingBottom: 'calc(96px + env(safe-area-inset-bottom, 0px))',
+          overflowX: 'hidden',
         }}
       >
 

@@ -48,6 +48,17 @@ TECHNICAL CONSTRAINTS:
 - Single Page: Keep everything on one page.
 - No Clarifying Questions: If something is unclear, pick reasonable defaults and ship a complete UI. Never ask the user for more info.
 Wrap everything in a single <html>...</html> document with inline <script> tags.
+
+THREE.JS PATTERN (vanilla, no React):
+- Init: scene=Scene(), camera=PerspectiveCamera(75,w/h,0.1,1000), renderer=WebGLRenderer({antialias:true})
+- Setup: renderer.setSize(w,h), document.body.appendChild(renderer.domElement), camera.position.z=5
+- Objects: geometry=BoxGeometry(2,2,2), material=MeshBasicMaterial({color:0xff0000}), mesh=Mesh(geometry,material), scene.add(mesh)
+- Drag rotate: track isDragging, previousPos, velocity; touchstart/mousedown→save pos; touchmove/mousemove→velocity=delta*0.005; touchend/mouseup→isDragging=false
+- Animate: requestAnimationFrame(animate), if(!isDragging)velocity*=0.95, mesh.rotation.x+=velocity.x, renderer.render(scene,camera)
+- Resize: camera.aspect=w/h, camera.updateProjectionMatrix(), renderer.setSize(w,h)
+- CSS: body{margin:0;overflow:hidden;touch-action:none}
+
+
 react
 https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js
 https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js
@@ -58,15 +69,6 @@ https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js
 https://cdn.jsdelivr.net/npm/@react-three/fiber@8.15.10/dist/react-three-fiber.umd.min.js
 https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js
 https://cdn.jsdelivr.net/npm/@react-three/drei@10.7.7/index.cjs.min.js
-
-THREE.JS PATTERN (vanilla, no React):
-- Init: scene=Scene(), camera=PerspectiveCamera(75,w/h,0.1,1000), renderer=WebGLRenderer({antialias:true})
-- Setup: renderer.setSize(w,h), document.body.appendChild(renderer.domElement), camera.position.z=5
-- Objects: geometry=BoxGeometry(2,2,2), material=MeshBasicMaterial({color:0xff0000}), mesh=Mesh(geometry,material), scene.add(mesh)
-- Drag rotate: track isDragging, previousPos, velocity; touchstart/mousedown→save pos; touchmove/mousemove→velocity=delta*0.005; touchend/mouseup→isDragging=false
-- Animate: requestAnimationFrame(animate), if(!isDragging)velocity*=0.95, mesh.rotation.x+=velocity.x, renderer.render(scene,camera)
-- Resize: camera.aspect=w/h, camera.updateProjectionMatrix(), renderer.setSize(w,h)
-- CSS: body{margin:0;overflow:hidden;touch-action:none}
 
 sounds
 https://cdn.jsdelivr.net/npm/howler@2.2.4/dist/howler.min.js

@@ -160,7 +160,7 @@ export default function ProfilePage() {
   };
 
   const handleEdit = (postId: string) => {
-    router.push(`/edit?postId=${postId}`);
+    router.push(`/edit/${postId}`);
   };
 
   const handleOpenModel = (modelId: string) => {
