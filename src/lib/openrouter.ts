@@ -1,39 +1,43 @@
-export const EXPANSION_SYSTEM_PROMPT = `You are a creative game/app designer. Your task is to expand a brief user idea into a detailed, implementation-ready specification for a mobile mini-app or game.
+export const EXPANSION_SYSTEM_PROMPT = `You are an expert game/app designer. Your task is to expand a user's idea into a detailed, implementation-ready specification for a single-file mobile web app.
+
+YOUR GOAL: Capture the ESSENCE and FEEL of what the user wants, adapted to what's possible in a client-side web app.
+
+CONSTRAINTS:
+- Single HTML file with inline React code
+- No backend/database (use localStorage for persistence)
+- No external APIs unless the user explicitly mentions them
+- Keep the core idea recognizable - if they want an "MMORPG", give them a multiplayer-feeling RPG (even if it's single-player with simulated other players)
 
 INPUT: A short idea (1-2 sentences)
 
 OUTPUT: A structured specification containing:
 
-1. **CONCEPT** (2-3 sentences)
-   - Core gameplay/functionality loop
-   - What makes it engaging
+1. **CORE CONCEPT**
+   - Restate their idea with respect and excitement
+   - Identify the ONE core mechanic that defines the experience (e.g., for MMORPG: "Character progression through combat")
+   - The "Hook": What makes this feel premium/engaging
 
 2. **MECHANICS**
-   - Primary user interactions (tap, swipe, hold, drag)
-   - Game rules or app logic flow
-   - Win/lose conditions OR success states
+   - Primary interaction (tap, drag, swipe, type, etc.)
+   - Core loop: What does the user do repeatedly?
+   - Progression/feedback: How do they know they're making progress?
+   - Win/success state (if applicable)
 
-3. **VISUAL STYLE**
-   - Color palette (specific hex codes or descriptive theme)
-   - UI elements needed (buttons, counters, progress bars, etc.)
-   - Animation suggestions (transitions, feedback effects)
+3. **VISUAL & AUDIO STYLE**
+   - Visual theme that matches the genre (e.g., pixel art for retro, glassmorphism for modern, gritty textures for fantasy)
+   - Key UI elements (HUD, buttons, cards, etc.)
+   - Sound/animation suggestions to enhance juice
 
-4. **FEATURES**
-   - Core features (must-have for MVP)
-   - Bonus features (nice-to-have)
-   - Sound/haptic feedback triggers
-
-5. **USER FLOW**
-   - Start screen → main interaction → end state
-   - How user progresses or loops back
+4. **TECHNICAL APPROACH**
+   - State to track (score, inventory, player stats, etc.)
+   - Libraries that fit the vision (React, Three.js for 3D, Howler for sound, etc.)
+   - Any clever tricks to simulate complex features client-side (e.g., procedural generation, simulated NPCs)
 
 GUIDELINES:
-- Keep scope realistic for a single-page HTML app
-- Prioritize touch-friendly, mobile-first interactions
-- Make it instantly playable without tutorials
-- If the idea is vague, pick the most fun/engaging interpretation
-- Be specific enough that a developer could build it without questions
-- Target 320-420px viewport width
+- Honor the user's genre and vision - don't simplify "MMORPG" to "clicker" unless that's truly the only way
+- Instead, find creative ways to capture the feel (e.g., MMORPG → show other "players" as bots, add chat bubbles, loot drops, character stats)
+- Prioritize the emotional experience over feature count
+- Be specific enough that a developer can build it without questions
 
 Respond ONLY with the structured specification. No preamble.`;
 
@@ -43,38 +47,96 @@ You are an expert Frontend Engineer specializing in building mini apps and games
 TECHNICAL CONSTRAINTS:
 - Mobile-First Design: Responsive for 320-420px. Use flex/grid, avoid fixed px widths, use touchscreen actions
 - avoid using scrollbars
-- You can use External Dependencies:
 - Viewport Height: Fit within 100vh or scroll gracefully.
 - Single Page: Keep everything on one page.
 - No Clarifying Questions: If something is unclear, pick reasonable defaults and ship a complete UI. Never ask the user for more info.
-Wrap everything in a single <html>...</html> document with inline <script> tags.
+- Wrap everything in a single <html>...</html> document with inline <script> tags.
 
-THREE.JS PATTERN (vanilla, no React):
-- Init: scene=Scene(), camera=PerspectiveCamera(75,w/h,0.1,1000), renderer=WebGLRenderer({antialias:true})
-- Setup: renderer.setSize(w,h), document.body.appendChild(renderer.domElement), camera.position.z=5
-- Objects: geometry=BoxGeometry(2,2,2), material=MeshBasicMaterial({color:0xff0000}), mesh=Mesh(geometry,material), scene.add(mesh)
-- Drag rotate: track isDragging, previousPos, velocity; touchstart/mousedown→save pos; touchmove/mousemove→velocity=delta*0.005; touchend/mouseup→isDragging=false
-- Animate: requestAnimationFrame(animate), if(!isDragging)velocity*=0.95, mesh.rotation.x+=velocity.x, renderer.render(scene,camera)
-- Resize: camera.aspect=w/h, camera.updateProjectionMatrix(), renderer.setSize(w,h)
-- CSS: body{margin:0;overflow:hidden;touch-action:none}
+ONE-SHOT EXAMPLE (Use this structure):
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>App</title>
+  <script type="module">
+    import React, { useState, useRef } from 'https://esm.sh/react@19?dev'
+    import { createRoot } from 'https://esm.sh/react-dom@19/client?dev&deps=react@19'
+    import { Canvas, useFrame } from 'https://esm.sh/@react-three/fiber@beta?dev&deps=react@19,react-dom@19'
+    import { Howl } from 'https://esm.sh/howler@2.2.4?dev'
+    import { create } from 'https://esm.sh/zustand@5?dev&deps=react@19'
 
+    const useStore = create((set) => ({
+      count: 0,
+      inc: () => set((state) => ({ count: state.count + 1 })),
+    }))
 
-react
-https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js
-https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js
-https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css
-https://cdn.jsdelivr.net/npm/zustand@4.5.2/umd/zustand.umd.production.min.js
-3d
-https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js
-https://cdn.jsdelivr.net/npm/@react-three/fiber@8.15.10/dist/react-three-fiber.umd.min.js
-https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js
-https://cdn.jsdelivr.net/npm/@react-three/drei@10.7.7/index.cjs.min.js
+    const sound = new Howl({
+      src: ['https://assets.mixkit.co/active_storage/sfx/2578/2578-preview.mp3']
+    })
 
-sounds
-https://cdn.jsdelivr.net/npm/howler@2.2.4/dist/howler.min.js
-touch
-https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js
+    function Cube() {
+      const mesh = useRef()
+      const [hovered, setHover] = useState(false)
+      const inc = useStore((state) => state.inc)
 
+      useFrame((state, delta) => {
+        if (mesh.current) mesh.current.rotation.x += delta
+      })
+
+      return React.createElement('mesh', {
+        ref: mesh,
+        onPointerOver: () => setHover(true),
+        onPointerOut: () => setHover(false),
+        onClick: () => {
+          inc()
+          sound.play()
+        },
+        scale: hovered ? 1.2 : 1
+      },
+        React.createElement('boxGeometry'),
+        React.createElement('meshStandardMaterial', { color: hovered ? 'hotpink' : 'orange' })
+      )
+    }
+
+    function App() {
+      const count = useStore((state) => state.count)
+      return React.createElement(React.Fragment, null,
+        React.createElement('div', { className: 'absolute top-0 left-0 p-4 text-white font-bold text-xl z-10 pointer-events-none' },
+          'Clicks: ' + count
+        ),
+        React.createElement(Canvas, {},
+          React.createElement('ambientLight'),
+          React.createElement('pointLight', { position: [10, 10, 10] }),
+          React.createElement(Cube)
+        )
+      )
+    }
+
+    const root = createRoot(document.getElementById('root'))
+    root.render(React.createElement(App))
+  </script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@4.1.17/index.min.css">
+  <style>
+    body { margin: 0; overflow: hidden; touch-action: none; background: #111; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+</body>
+</html>
+
+AVAILABLE LIBRARIES (Use these ESM URLs):
+- React: https://esm.sh/react@19?dev
+- ReactDOM: https://esm.sh/react-dom@19/client?dev&deps=react@19
+- TailwindCSS: https://cdn.jsdelivr.net/npm/tailwindcss@4.1.17/+esm (Script) & https://cdn.jsdelivr.net/npm/tailwindcss@4.1.17/index.min.css (Link)
+- Zustand: https://esm.sh/zustand@5?dev&deps=react@19
+- Three.js: https://esm.sh/three@0.181.2?dev
+- React Three Fiber: https://esm.sh/@react-three/fiber@beta?dev&deps=react@19,react-dom@19
+- React Three Drei: https://esm.sh/@react-three/drei@beta?dev&deps=react@19,react-dom@19
+- Cannon.js: https://esm.sh/cannon-es@0.20.0?dev
+- Howler: https://esm.sh/howler@2.2.4?dev
+- Hammer.js: https://esm.sh/hammerjs@2.0.8?dev
 
 OUTPUT FORMAT:
 Return executable HTML code. Do not include markdown explanations outside the code blocks. If data is missing, invent sensible sample data and return the finished UI without questions
@@ -156,7 +218,7 @@ export const AVAILABLE_MODELS = [
 
 export type ModelId = typeof AVAILABLE_MODELS[number]['id'];
 
-const OPENROUTER_API_BASE = 'https://openrouter.ai/api/v1';
+const OPENROUTER_API_BASE = 'http://127.0.0.1:10100/api/v1';
 
 interface OpenRouterMessage {
   role: 'system' | 'user' | 'assistant';
@@ -264,8 +326,8 @@ export async function generateHTMLWithOpenRouter({
     const requestBody: Record<string, unknown> = {
       model,
       messages,
-      temperature: 0.7,
-      max_tokens: supportsReasoning ? 16000 : 4000,
+      // temperature: 0.7,
+      // max_tokens: supportsReasoning ? 16000 : 4000,
     };
 
     // Add reasoning parameter for models that support it
@@ -382,8 +444,11 @@ export async function expandPromptWithGrok({
       body: JSON.stringify({
         model: FREE_GROK_MODEL,
         messages,
-        temperature: 0.8,
-        max_tokens: 2000,
+        reasoning: {
+          effort: 'high',
+        }
+        // temperature: 0.8,
+        // max_tokens: 2000,
       }),
       signal: controller.signal,
     });
