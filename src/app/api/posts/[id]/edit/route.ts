@@ -70,7 +70,7 @@ export async function POST(
     const { data: settings } = await supabase
       .from('user_settings')
       .select('openrouter_api_key')
-      .eq('user_id', userId)
+      .eq('user_id', parseInt(userId, 10))
       .maybeSingle();
 
     const apiKey = settings?.openrouter_api_key || process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API;
