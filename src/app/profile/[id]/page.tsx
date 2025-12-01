@@ -285,23 +285,26 @@ export default function UserProfilePage() {
 
             {/* Share button */}
             <button
-              onClick={() => {
+              onClick={async () => {
                 const botLink = process.env.NEXT_PUBLIC_BOT_LINK || 'GoldHourBot';
                 const botApp = process.env.NEXT_PUBLIC_BOT_APP || 'bot';
-                const shareUrl = `https://t.me/${botLink}/${botApp}?startapp=user_${profileId}`;
-                const shareText = `Check out ${name}'s profile`;
+                const url = `https://t.me/${botLink}/${botApp}?startapp=user_${profileId}`;
+                const text = `Check out ${name}'s profile`;
 
                 try {
-                  if (shareURL.isAvailable()) {
-                    shareURL(shareUrl, shareText);
-                  } else if (navigator.share) {
-                    navigator.share({
+                  // Try native Telegram shareURL first
+                  const shared = shareURL.ifAvailable(url, text);
+                  if (shared !== undefined) return;
+
+                  // Fallbacks
+                  if (navigator.share) {
+                    await navigator.share({
                       title: `${name}'s Profile`,
-                      text: shareText,
-                      url: shareUrl,
+                      text,
+                      url,
                     });
                   } else {
-                    navigator.clipboard.writeText(shareUrl);
+                    await navigator.clipboard.writeText(url);
                     alert('Profile link copied to clipboard!');
                   }
                 } catch (err) {

@@ -1,6 +1,7 @@
 'use client';
 
 import { initData, useSignal } from '@telegram-apps/sdk-react';
+import { shareURL } from '@telegram-apps/sdk';
 import { Avatar, Section, Spinner, Text } from '@telegram-apps/telegram-ui';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -8,17 +9,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Page } from '@/components/Page';
 import { PostCard, type PostCardData, type UserSummary } from '@/components/PostCard';
 import { TabNavigation } from '@/components/TabNavigation';
-
-// Telegram WebApp types
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp?: {
-        openTelegramLink?: (url: string) => void;
-      };
-    };
-  }
-}
 
 type ProfileStats = {
   totalPosts: number;
@@ -387,24 +377,26 @@ export default function ProfilePage() {
               Settings
             </button>
             <button
-              onClick={() => {
+              onClick={async () => {
                 const botLink = process.env.NEXT_PUBLIC_BOT_LINK || 'GoldHourBot';
                 const botApp = process.env.NEXT_PUBLIC_BOT_APP || 'bot';
-                const shareUrl = `https://t.me/${botLink}/${botApp}?startapp=user_${viewer?.id}`;
-                const shareText = `Check out ${name}'s profile`;
+                const url = `https://t.me/${botLink}/${botApp}?startapp=user_${viewer?.id}`;
+                const text = `Check out ${name}'s profile`;
 
                 try {
-                  if (window.Telegram?.WebApp?.openTelegramLink) {
-                    const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
-                    window.Telegram.WebApp.openTelegramLink(tgShareUrl);
-                  } else if (navigator.share) {
-                    navigator.share({
+                  // Try native Telegram shareURL first
+                  const shared = shareURL.ifAvailable(url, text);
+                  if (shared !== undefined) return;
+
+                  // Fallbacks
+                  if (navigator.share) {
+                    await navigator.share({
                       title: `${name}'s Profile`,
-                      text: shareText,
-                      url: shareUrl,
+                      text,
+                      url,
                     });
                   } else {
-                    navigator.clipboard.writeText(shareUrl);
+                    await navigator.clipboard.writeText(url);
                     alert('Profile link copied to clipboard!');
                   }
                 } catch (err) {
