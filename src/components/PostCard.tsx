@@ -2,18 +2,8 @@
 
 import { wrapHtmlWithMute } from '@/lib/iframe-mute';
 import { Avatar, Button, Spinner, Text } from '@telegram-apps/telegram-ui';
+import { shareMessage, shareURL } from '@telegram-apps/sdk';
 import { useEffect, useMemo, useState } from 'react';
-
-// Telegram WebApp types
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp?: {
-        openTelegramLink?: (url: string) => void;
-      };
-    };
-  }
-}
 
 export type UserSummary = {
   id: string;
@@ -151,6 +141,69 @@ export function PostCard({
   const [isFrameLoading, setIsFrameLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [likeAnimation, setLikeAnimation] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+
+  // Native Telegram share using shareMessage or shareURL API
+  const handleShare = async () => {
+    if (isSharing) return;
+
+    const botLink = process.env.NEXT_PUBLIC_BOT_LINK || 'GoldHourBot';
+    const botApp = process.env.NEXT_PUBLIC_BOT_APP || 'bot';
+    const url = `https://t.me/${botLink}/${botApp}?startapp=post_${post.id}`;
+    const text = `Check out this project: ${post.prompt}`;
+
+    console.log('[Share] shareMessage.isAvailable:', shareMessage.isAvailable());
+    console.log('[Share] shareURL.isAvailable:', shareURL.isAvailable());
+
+    // Try native Telegram shareMessage first (requires Bot API setup)
+    if (shareMessage.isAvailable() && viewerId) {
+      setIsSharing(true);
+      try {
+        const response = await fetch(`/api/posts/${post.id}/share`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: viewerId }),
+        });
+
+        if (response.ok) {
+          const { preparedMessageId } = await response.json();
+          if (preparedMessageId) {
+            await shareMessage(preparedMessageId);
+            setIsSharing(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('shareMessage failed, trying shareURL:', err);
+      }
+      setIsSharing(false);
+    }
+
+    // Fallback to shareURL (opens native Telegram share dialog)
+    // Use ifAvailable which handles the check internally
+    try {
+      const shared = shareURL.ifAvailable(url, text);
+      if (shared !== undefined) {
+        console.log('[Share] shareURL.ifAvailable succeeded');
+        return;
+      }
+      console.log('[Share] shareURL not available');
+    } catch (err) {
+      console.error('shareURL failed:', err);
+    }
+
+    // Last resort fallbacks
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: post.title, text, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        alert('Link copied to clipboard!');
+      }
+    } catch (err) {
+      console.error('Error sharing:', err);
+    }
+  };
 
   const hasHtmlContent = Boolean(post.project?.html_content);
   const hasV0Demo = Boolean(post.v0_demo_url && post.v0_demo_url !== 'pending' && post.v0_demo_url !== 'failed');
@@ -556,45 +609,21 @@ export function PostCard({
           {/* Share button - for author when they have controls */}
           {isAuthor && !isGenerating && !isFailed && (
             <button
-              onClick={async () => {
-                const botLink = process.env.NEXT_PUBLIC_BOT_LINK || 'GoldHourBot';
-                const botApp = process.env.NEXT_PUBLIC_BOT_APP || 'bot';
-                const shareUrl = `https://t.me/${botLink}/${botApp}?startapp=post_${post.id}`;
-                const shareText = `Check out this project: ${post.prompt}`;
-
-                try {
-                  // Try Telegram share first
-                  if (window.Telegram?.WebApp?.openTelegramLink) {
-                    const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
-                    window.Telegram.WebApp.openTelegramLink(tgShareUrl);
-                  } else if (navigator.share) {
-                    // Fallback to Web Share API
-                    await navigator.share({
-                      title: post.title,
-                      text: shareText,
-                      url: shareUrl,
-                    });
-                  } else {
-                    // Fallback: copy to clipboard
-                    await navigator.clipboard.writeText(shareUrl);
-                    alert('Link copied to clipboard!');
-                  }
-                } catch (err) {
-                  console.error('Error sharing:', err);
-                }
-              }}
+              onClick={handleShare}
+              disabled={isSharing}
               style={{
                 background: 'none',
                 border: 'none',
                 padding: 0,
-                cursor: 'pointer',
+                cursor: isSharing ? 'wait' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 fontSize: '24px',
                 transition: 'transform 0.1s ease',
+                opacity: isSharing ? 0.5 : 1,
               }}
               onMouseDown={(e) => {
-                e.currentTarget.style.transform = 'scale(0.9)';
+                if (!isSharing) e.currentTarget.style.transform = 'scale(0.9)';
               }}
               onMouseUp={(e) => {
                 e.currentTarget.style.transform = 'scale(1)';
@@ -663,48 +692,22 @@ export function PostCard({
           {/* Share button - moves to right if NOT author or no controls */}
           {(!isAuthor || isGenerating || isFailed) && (
             <button
-              onClick={async () => {
-                const botLink = process.env.NEXT_PUBLIC_BOT_LINK || 'GoldHourBot';
-                const botApp = process.env.NEXT_PUBLIC_BOT_APP || 'bot';
-                const shareUrl = `https://t.me/${botLink}/${botApp}?startapp=post_${post.id}`;
-                const shareText = `Check out this project: ${post.prompt}`;
-
-                try {
-                  // Try Telegram share first
-                  if (window.Telegram?.WebApp?.openTelegramLink) {
-                    const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
-                    window.Telegram.WebApp.openTelegramLink(tgShareUrl);
-                  } else if (navigator.share) {
-                    // Fallback to Web Share API
-                    await navigator.share({
-                      title: post.title,
-                      text: shareText,
-                      url: shareUrl,
-                    });
-                  } else {
-                    // Fallback: copy to clipboard
-                    await navigator.clipboard.writeText(shareUrl);
-                    alert('Link copied to clipboard!');
-                  }
-                } catch (err) {
-                  console.error('Error sharing:', err);
-                }
-              }}
-              disabled={isGenerating || isFailed}
+              onClick={handleShare}
+              disabled={isGenerating || isFailed || isSharing}
               style={{
                 background: 'none',
                 border: 'none',
                 padding: 0,
-                cursor: isGenerating || isFailed ? 'default' : 'pointer',
+                cursor: isGenerating || isFailed || isSharing ? 'default' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 fontSize: '24px',
-                opacity: isGenerating || isFailed ? 0.5 : 1,
+                opacity: isGenerating || isFailed || isSharing ? 0.5 : 1,
                 transition: 'transform 0.1s ease',
                 marginLeft: 'auto',
               }}
               onMouseDown={(e) => {
-                e.currentTarget.style.transform = 'scale(0.9)';
+                if (!isSharing) e.currentTarget.style.transform = 'scale(0.9)';
               }}
               onMouseUp={(e) => {
                 e.currentTarget.style.transform = 'scale(1)';
