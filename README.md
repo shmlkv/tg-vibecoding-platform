@@ -2,6 +2,9 @@
 
 Telegram Mini App built with Next.js that uses AI to generate user interfaces from text descriptions. This is a modern web application running inside Telegram that integrates TON Connect for wallet functionality.
 
+| | |
+|---|---|
+| ![](https://github.com/shmlkv/tg-vibecoding-platform/blob/main/ai-docs/Screenshot1.png?raw=true) | ![](https://github.com/shmlkv/tg-vibecoding-platform/blob/main/ai-docs/Screenshot2.png?raw=true) |
 ## Features
 
 - **AI UI Generator**: Describe any interface in plain text and AI will generate it for you
