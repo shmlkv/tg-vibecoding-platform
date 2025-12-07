@@ -240,20 +240,32 @@ export default function GeneratePage() {
                 style={{
                   fontSize: '13px',
                   color: 'var(--tg-theme-text-color)',
-                  marginBottom: '2px',
+                  marginBottom: '4px',
                   display: 'block',
                 }}
               >
-                ⚠️ High load detected
+                🔑 OpenRouter API Key Required
               </Text>
-              <Text style={{ fontSize: '12px', color: 'var(--tg-theme-hint-color)' }}>
-                Please add your OpenRouter API key in{' '}
+              <Text style={{ fontSize: '12px', color: 'var(--tg-theme-hint-color)', display: 'block', marginBottom: '8px' }}>
+                To use paid models, add your{' '}
+                <a
+                  href="https://openrouter.ai/keys"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--tg-theme-link-color, #3390ec)' }}
+                >
+                  OpenRouter API key
+                </a>{' '}
+                in{' '}
                 <span
                   onClick={() => router.push('/settings')}
                   style={{ textDecoration: 'underline', cursor: 'pointer', color: 'var(--tg-theme-link-color, #3390ec)' }}
                 >
                   Settings
                 </span>
+              </Text>
+              <Text style={{ fontSize: '11px', color: 'var(--tg-theme-hint-color)', opacity: 0.8 }}>
+                Or select a free model (marked with :free)
               </Text>
             </div>
           )}
