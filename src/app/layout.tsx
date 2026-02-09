@@ -10,8 +10,8 @@ import 'normalize.css/normalize.css';
 import './_assets/globals.css';
 
 export const metadata: Metadata = {
-  title: 'Your Application Title Goes Here',
-  description: 'Your application description goes here',
+  title: 'Components Starter',
+  description: 'A clean, data-free starter with reusable UI components.',
 };
 
 export default async function RootLayout({ children }: PropsWithChildren) {
