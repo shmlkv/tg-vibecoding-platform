@@ -392,7 +392,7 @@ export function Combobox({
                   fontSize: '13px',
                 }}
               >
-                No models found
+                No options found
               </div>
             ) : (
               filteredOptions.map((option) => {

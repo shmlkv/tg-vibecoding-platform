@@ -83,9 +83,9 @@ const ProfileIcon = ({ isActive }: { isActive: boolean }) => (
 );
 
 const tabs = [
-  { href: '/posts', label: 'Feed', icon: FeedIcon },
-  { href: '/generate', label: 'Create', icon: CreateIcon },
-  { href: '/profile', label: 'Profile', icon: ProfileIcon },
+  { href: '/', label: 'Home', icon: FeedIcon },
+  { href: '/components', label: 'Components', icon: CreateIcon },
+  { href: '/about', label: 'About', icon: ProfileIcon },
 ];
 
 export function TabNavigation() {
@@ -106,7 +106,10 @@ export function TabNavigation() {
       }}
     >
       {tabs.map((tab) => {
-        const isSelected = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+        const isSelected =
+          tab.href === '/'
+            ? pathname === '/'
+            : pathname === tab.href || pathname.startsWith(`${tab.href}/`);
         const Icon = tab.icon;
 
         return (
