@@ -13,7 +13,7 @@
     "@telegram-apps/sdk-react": "^3.2.4",
     "@telegram-apps/telegram-ui": "^2.1.5",
     "eruda": "^3.0.1",
-    "next": "15.3.1",
+    "next": "15.3.8",
     "next-intl": "^4.1.0",
     "normalize.css": "^8.0.1",
     "react": "^18",
